@@ -1,0 +1,3967 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Double Y - Premium Gaming</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+
+        :root { --premium-purple: #1a0b35; --gold: #fbbf24; --silver: #9ca3af; }
+
+        body { background: linear-gradient(135deg, #0f0524 0%, #1a0b35 50%, #0f0524 100%); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height: 100vh; }
+
+        .game-card { background: linear-gradient(135deg, #1e1145, #2d1a5e); border: 2px solid; border-image: linear-gradient(45deg, #fbbf24, #9ca3af, #fbbf24) 1; transition: all 0.3s; }
+
+        .game-card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(251, 191, 36, 0.3); }
+
+        @keyframes goldPulse { 0%, 100% { text-shadow: 0 0 10px #fbbf24; } 50% { text-shadow: 0 0 30px #fbbf24, 0 0 50px #fbbf24; } }
+
+        @keyframes silverPulse { 0%, 100% { text-shadow: 0 0 10px #9ca3af; } 50% { text-shadow: 0 0 20px #9ca3af; } }
+
+        @keyframes countUp { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        #sidebar { transition: transform 0.3s ease-in-out; transform: translateX(-100%); }
+
+        #sidebar.active { transform: translateX(0); }
+
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 100; align-items: center; justify-content: center; overflow-y: auto; padding: 20px; }
+
+        .modal.active { display: flex; }
+
+        .modal-content { background: linear-gradient(135deg, #1a0b35, #2d1a5e); padding: 1.5rem; border-radius: 1rem; max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto; border: 2px solid #fbbf24; }
+
+        .request-card { background: rgba(45, 26, 94, 0.5); padding: 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem; border: 1px solid rgba(251, 191, 36, 0.3); }
+
+        .vip-lv1 { background: linear-gradient(135deg, #1e40af, #3b82f6); }
+
+        .vip-lv2 { background: linear-gradient(135deg, #92400e, #d97706); }
+
+        .vip-lv3 { background: linear-gradient(135deg, #374151, #9ca3af); }
+
+        .vip-lv4 { background: linear-gradient(135deg, #b45309, #fbbf24); }
+
+        .vip-lv5 { background: linear-gradient(135deg, #dc2626, #ef4444); }
+
+        .vip-lv6 { background: linear-gradient(135deg, #e5e7eb, #ffffff); color: #1f2937; }
+
+        .vip-lv7 { background: linear-gradient(135deg, #7c3aed, #fbbf24, #dc2626); }
+
+        .dice-btn { transition: all 0.2s; border: 2px solid transparent; }
+
+        .dice-btn:hover { transform: scale(1.05); }
+
+        .dice-btn.selected { border-color: #fbbf24; box-shadow: 0 0 20px rgba(251, 191, 36, 0.5); }
+
+        .number-btn { width: 50px; height: 50px; font-size: 1.2rem; font-weight: bold; }
+
+        /* Dice Rolling Animation */
+
+        .dice-image.rolling {
+
+            animation: diceRoll 0.15s infinite ease-in-out;
+
+        }
+
+
+
+        @keyframes diceRoll {
+
+            0%, 100% { transform: rotate(-10deg) scale(1.1); }
+
+            50% { transform: rotate(10deg) scale(0.9); }
+
+        }
+
+
+
+        /* Slot Cascade Drop Animation */
+
+        .slot-spinning .slot-cell img {
+
+            animation: cascadeDrop 0.15s infinite linear;
+
+        }
+
+
+
+        @keyframes cascadeDrop {
+
+            0% { transform: translateY(-100%); opacity: 0.5; }
+
+            100% { transform: translateY(100%); opacity: 0.5; }
+
+        }
+
+
+
+        .win-screen { background: linear-gradient(135deg, rgba(0,0,0,0.95), rgba(50, 30, 0, 0.95)); }
+
+        .lose-screen { background: linear-gradient(135deg, rgba(0,0,0,0.95), rgba(30, 30, 40, 0.95)); }
+
+        .gold-text { color: #fbbf24; animation: goldPulse 0.5s infinite; font-size: 3rem; font-weight: bold; }
+
+        .silver-text { color: #9ca3af; animation: silverPulse 1s infinite; font-size: 2.5rem; font-weight: bold; }
+
+        .slot-grid { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(3, 1fr); gap: 4px; background: linear-gradient(135deg, #1f2937, #111827); padding: 10px; border-radius: 10px; border: 3px solid #fbbf24; overflow: hidden; position: relative; }
+
+        .slot-cell { background: linear-gradient(135deg, #2d1a5e, #1a0b35); border: 2px solid #4c1d95; border-radius: 8px; height: 70px; display: flex; align-items: center; justify-content: center; transition: all 0.1s; overflow: hidden; position: relative; }
+
+        .slot-cell img { width: 55px; height: 55px; object-fit: contain; }
+
+        .slot-spinning .slot-cell { overflow: hidden; }
+
+        .slot-spinning .slot-cell img, .slot-spinning .slot-cell span { animation: cascadeDrop 0.15s infinite linear; }
+
+        @keyframes cascadeDrop { 0% { transform: translateY(-100%); opacity: 0.5; } 50% { opacity: 1; } 100% { transform: translateY(100%); opacity: 0.5; } }
+
+        .slot-win { animation: cellWin 0.3s infinite; border-color: #fbbf24; }
+
+        @keyframes cellWin { 0%, 100% { background: linear-gradient(135deg, #fbbf24, #b45309); } 50% { background: linear-gradient(135deg, #b45309, #fbbf24); } }
+
+        .scatter-active { animation: scatterGlow 0.5s infinite; box-shadow: 0 0 30px #ff6b00, 0 0 60px #00d4ff; }
+
+        @keyframes scatterGlow { 0%, 100% { box-shadow: 0 0 30px #ff6b00; } 50% { box-shadow: 0 0 50px #00d4ff, 0 0 70px #ff6b00; } }
+
+        .ice-glow { animation: iceEffect 0.5s infinite; box-shadow: 0 0 20px #00d4ff, 0 0 40px #fff; }
+
+        @keyframes iceEffect { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.5) drop-shadow(0 0 10px #00d4ff); } }
+
+        .fire-glow { animation: fireEffect 0.3s infinite; box-shadow: 0 0 20px #ff4500, 0 0 40px #ff6b00; }
+
+        @keyframes fireEffect { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.3) drop-shadow(0 0 15px #ff4500); } }
+
+        .sword-glow { animation: swordEffect 0.4s infinite alternate; }
+
+        @keyframes swordEffect { 0% { box-shadow: 0 0 20px #dc2626; filter: brightness(1.2); } 100% { box-shadow: 0 0 20px #3b82f6; filter: brightness(1.4); } }
+
+        .yingyang-glow { animation: yingyangSpin 2s infinite linear; box-shadow: 0 0 20px #3b82f6, 0 0 40px #fff; }
+
+        @keyframes yingyangSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .big-win-popup { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; flex-direction: column; }
+
+        .big-win-text { font-size: 3rem; font-weight: bold; background: linear-gradient(45deg, #fbbf24, #fff, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: bigWinPulse 0.5s infinite; }
+
+        @keyframes bigWinPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+        .count-up { animation: countUp 0.3s ease-out; }
+
+        .toast { position: fixed; top: 20px; right: 20px; padding: 15px 25px; border-radius: 10px; z-index: 500; animation: slideIn 0.3s; }
+
+        .toast-success { background: linear-gradient(135deg, #059669, #10b981); }
+
+        .toast-error { background: linear-gradient(135deg, #dc2626, #ef4444); }
+
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        .progress-bar { background: #374151; border-radius: 10px; height: 20px; overflow: hidden; }
+
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #fbbf24, #f59e0b); transition: width 0.5s; }
+
+        .tab-btn { padding: 8px 16px; background: #374151; border-radius: 8px 8px 0 0; cursor: pointer; transition: all 0.3s; font-size: 0.85rem; }
+
+        .tab-btn.active { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+
+        .admin-section { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #dc2626; border-radius: 10px; padding: 1rem; margin-bottom: 1rem; }
+
+        .admin-btn { background: linear-gradient(135deg, #dc2626, #991b1b); transition: all 0.2s; }
+
+        .admin-btn:hover { background: linear-gradient(135deg, #ef4444, #dc2626); transform: scale(1.02); }
+
+        .notification-badge { position: absolute; top: -5px; right: -5px; background: #dc2626; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+
+        .bet-modal-content { background: linear-gradient(135deg, #1a0b35, #2d1a5e); border: 2px solid #fbbf24; border-radius: 1rem; padding: 1.5rem; max-width: 400px; width: 95%; }
+
+        .preset-btn { background: linear-gradient(135deg, #4c1d95, #6d28d9); padding: 10px 20px; border-radius: 8px; font-weight: bold; transition: all 0.2s; }
+
+        .preset-btn:hover { transform: scale(1.05); background: linear-gradient(135deg, #6d28d9, #7c3aed); }
+
+        .multiplier-btn { background: linear-gradient(135deg, #b45309, #d97706); padding: 8px 16px; border-radius: 8px; font-weight: bold; }
+
+        .win-tag { background: linear-gradient(135deg, #059669, #10b981); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
+
+        .lose-tag { background: linear-gradient(135deg, #dc2626, #ef4444); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
+
+        .pending-tag { background: linear-gradient(135deg, #d97706, #f59e0b); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
+
+        .timer-mode-btn { padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; transition: all 0.3s; border: 2px solid transparent; }
+
+        .timer-mode-btn.active { background: linear-gradient(135deg, #fbbf24, #d97706); color: #000; font-weight: bold; border-color: #fbbf24; box-shadow: 0 0 15px #fbbf24, 0 0 30px rgba(251, 191, 36, 0.5); animation: timerGlow 1s infinite; }
+
+        @keyframes timerGlow { 0%, 100% { box-shadow: 0 0 15px #fbbf24; } 50% { box-shadow: 0 0 25px #fbbf24, 0 0 40px rgba(251, 191, 36, 0.7); } }
+
+        .timer-mode-btn:not(.active) { background: #374151; }
+
+        .live-feed-item { animation: fadeIn 0.3s; border-left: 3px solid #fbbf24; padding-left: 8px; margin-bottom: 4px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .profit-positive { color: #22c55e; }
+
+        .profit-negative { color: #ef4444; }
+
+        .special-game-btn { background: linear-gradient(135deg, #ff6b00, #ff9500); animation: specialPulse 1.5s infinite; position: relative; }
+
+        @keyframes specialPulse { 0%, 100% { box-shadow: 0 0 10px #ff6b00; } 50% { box-shadow: 0 0 25px #ff9500, 0 0 40px #ff6b00; } }
+
+        .special-icon { position: absolute; top: -10px; right: -10px; width: 30px; height: 30px; }
+
+        .global-notice { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 600; background: linear-gradient(135deg, #1a0b35, #2d1a5e); border: 3px solid #fbbf24; border-radius: 1rem; padding: 2rem; max-width: 400px; width: 90%; text-align: center; }
+
+        .dice-image { width: 100px; height: 100px; object-fit: contain; transition: all 0.2s; }
+
+        .dice-image.rolling { animation: diceRoll 0.15s infinite ease-in-out; }
+
+        .snow-effect { position: fixed; pointer-events: none; z-index: 400; }
+
+        .flame-effect { animation: flameOverlay 0.3s infinite; }
+
+        @keyframes flameOverlay { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
+
+        .drum-beat { animation: drumPulse 0.2s infinite; }
+
+        @keyframes drumPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div id="toast-container"></div>
+
+    <div id="global-notice-container"></div>
+
+    <div id="effect-container"></div>
+
+
+
+    <audio id="spinSound" preload="auto" loop><source src="https://www.soundjay.com/misc/sounds/mechanical-clunk-1.mp3" type="audio/mpeg"></audio>
+
+    <audio id="winSound" preload="auto"><source src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3" type="audio/mpeg"></audio>
+
+    <audio id="dingSound" preload="auto"><source src="https://www.soundjay.com/misc/sounds/bell-ringing-04.mp3" type="audio/mpeg"></audio>
+
+    <audio id="errorSound" preload="auto"><source src="https://www.soundjay.com/misc/sounds/fail-trumpet-01.mp3" type="audio/mpeg"></audio>
+
+    <audio id="drumSound" preload="auto"><source src="https://www.soundjay.com/misc/sounds/drum-roll-1.mp3" type="audio/mpeg"></audio>
+
+
+
+    <div id="auth-page" class="flex flex-col items-center justify-center min-h-screen p-5">
+
+        <div class="bg-gradient-to-br from-[#1a0b35] to-[#2d1a5e] p-8 rounded-2xl shadow-2xl w-full max-w-md border-2 border-yellow-500">
+
+            <div class="text-center mb-6">
+
+                <h1 class="text-4xl font-bold bg-gradient-to-r from-yellow-400 via-white to-yellow-400 bg-clip-text text-transparent">Double Y</h1>
+
+                <p class="text-gray-400 text-sm mt-2">Premium Gaming Experience</p>
+
+            </div>
+
+            <input type="email" id="email" placeholder="Email" class="w-full p-3 mb-4 rounded-lg bg-gray-800/50 border border-gray-600 focus:outline-none focus:border-yellow-500">
+
+            <input type="password" id="pass" placeholder="Password (min 6 chars)" class="w-full p-3 mb-4 rounded-lg bg-gray-800/50 border border-gray-600 focus:border-yellow-500">
+
+            <input type="text" id="invite" placeholder="Invite Code (optional)" class="w-full p-3 mb-4 rounded-lg bg-gray-800/50 border border-gray-600">
+
+            <button onclick="handleAuth()" id="authBtn" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 p-3 rounded-lg font-bold transition transform hover:scale-[1.02]">Login / Register</button>
+
+            <p id="authError" class="text-red-400 text-sm text-center mt-2 hidden"></p>
+
+            <p class="text-sm text-center mt-4 text-gray-400 cursor-pointer hover:text-yellow-400" onclick="resetPassword()">Forgot Password?</p>
+
+        </div>
+
+    </div>
+
+
+
+    <div id="main-page" class="hidden">
+
+        <header class="p-4 flex justify-between items-center bg-gradient-to-r from-[#1a0b35] to-[#2d1a5e] border-b border-yellow-500/30">
+
+            <div onclick="toggleSidebar()" class="cursor-pointer text-2xl hover:text-yellow-400 transition">☰</div>
+
+            <div class="text-center">
+
+                <h1 class="text-xl font-bold bg-gradient-to-r from-yellow-400 via-white to-yellow-400 bg-clip-text text-transparent">Double Y</h1>
+
+            </div>
+
+            <div class="flex items-center gap-4">
+
+                <div class="relative cursor-pointer" onclick="openModal('notificationModal')">
+
+                    <span class="text-xl">🔔</span>
+
+                    <span id="notifBadge" class="notification-badge hidden">0</span>
+
+                </div>
+
+                <div class="text-sm">
+
+                    <span class="text-gray-400">Bal:</span>
+
+                    <span id="userBalance" class="text-green-400 font-bold">0</span>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+
+        <div class="p-4">
+
+            <div id="ads" class="h-28 bg-gradient-to-r from-purple-900 via-purple-800 to-purple-900 rounded-xl flex items-center justify-center text-lg font-bold italic shadow-lg text-center px-4 border border-yellow-500/30 overflow-hidden">
+
+                🎰 Welcome to Double Y - Premium Gaming 🎰
+
+            </div>
+
+        </div>
+
+
+
+        <div class="p-4 grid grid-cols-1 gap-4">
+
+            <div onclick="openBigSmall()" class="game-card p-5 rounded-xl flex items-center justify-between cursor-pointer">
+
+                <div>
+
+                    <h3 class="text-xl font-bold text-yellow-400">Big & Small 6 Point</h3>
+
+                    <p class="text-xs text-gray-400">Win up to 100x multiplier</p>
+
+                </div>
+
+                <img src="https://i.imgur.com/4j1jFGm.png" class="w-16 h-16" alt="Dice">
+
+            </div>
+
+            <div onclick="openSlotGame()" class="game-card p-5 rounded-xl flex items-center justify-between cursor-pointer">
+
+                <div>
+
+                    <h3 class="text-xl font-bold text-yellow-400">Ying Yang Slot</h3>
+
+                    <p class="text-xs text-gray-400">5x3 Grid | Free Spins & Jackpot</p>
+
+                </div>
+
+                <img src="https://i.imgur.com/Fibm3wW.png" class="w-16 h-16" alt="Slot">
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <div id="sidebar" class="fixed top-0 left-0 w-64 h-full bg-gradient-to-b from-[#11052c] to-[#1a0b35] z-50 p-6 shadow-2xl border-r border-yellow-500/30 overflow-y-auto">
+
+        <button onclick="toggleSidebar()" class="mb-6 text-red-400 hover:text-red-300">Close ✕</button>
+
+        <div class="mb-8">
+
+            <p id="userId" class="text-gray-400 text-sm">ID: Loading...</p>
+
+            <p id="userMail" class="font-bold text-sm truncate text-yellow-400">Loading...</p>
+
+            <div id="vipBadge" class="mt-2 vip-lv1 px-3 py-1 inline-block rounded text-xs font-bold">VIP LV 1</div>
+
+        </div>
+
+        <nav class="space-y-3">
+
+            <div onclick="openModal('vipModal')" class="cursor-pointer hover:text-yellow-400 transition p-2 rounded hover:bg-white/5">🏆 VIP Level</div>
+
+            <div onclick="openModal('historyModal')" class="cursor-pointer hover:text-yellow-400 transition p-2 rounded hover:bg-white/5">📜 Money History</div>
+
+            <div onclick="openModal('analyticsModal')" class="cursor-pointer hover:text-yellow-400 transition p-2 rounded hover:bg-white/5">📊 Analytics</div>
+
+            <div onclick="openModal('mlmModal')" class="cursor-pointer hover:text-yellow-400 transition p-2 rounded hover:bg-white/5">💰 Commission (MLM)</div>
+
+            <div onclick="openModal('financeModal')" class="cursor-pointer hover:text-yellow-400 transition p-2 rounded hover:bg-white/5">💳 Deposit & Withdraw</div>
+
+            <div onclick="openAdminPanel()" id="adminLink" class="cursor-pointer hover:text-red-400 transition p-2 rounded hover:bg-white/5 hidden">⚙️ Admin Panel</div>
+
+            <div onclick="logout()" class="cursor-pointer hover:text-red-400 text-red-300 mt-8 p-2 rounded hover:bg-white/5">🚪 Logout</div>
+
+        </nav>
+
+    </div>
+
+
+
+    <!-- Big/Small Game UI -->
+
+    <div id="game-ui" class="hidden fixed inset-0 bg-gradient-to-b from-[#0f0524] to-[#1a0b35] z-40 overflow-y-auto">
+
+        <div class="p-3 flex justify-between items-center bg-black/30">
+
+            <button onclick="closeGame()" class="text-lg hover:text-yellow-400">← Back</button>
+
+            <div class="text-center">
+
+                <span class="text-gray-400 text-sm">Balance: </span>
+
+                <span id="gameBalance" class="text-green-400 font-bold text-lg">0</span>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="flex flex-col items-center px-4 pb-20">
+
+            <h2 class="text-xl font-bold text-yellow-400 mb-2">🎲 Big & Small 6 Point 🎲</h2>
+
+
+
+            <div class="flex gap-2 mb-4 justify-center">
+
+                <button onclick="setTimerMode(30)" id="timer30" class="timer-mode-btn active px-4 py-1 bg-purple-700 rounded-full text-xs">30s</button>
+
+                <button onclick="setTimerMode(60)" id="timer60" class="timer-mode-btn px-4 py-1 bg-gray-700 rounded-full text-xs">1min</button>
+
+                <button onclick="setTimerMode(180)" id="timer180" class="timer-mode-btn px-4 py-1 bg-gray-700 rounded-full text-xs">3min</button>
+
+            </div>
+
+
+
+            <div class="bg-gradient-to-br from-[#1a0b35] to-[#2d1a5e] rounded-xl p-4 border-2 border-yellow-500/50 mb-3 w-full max-w-lg">
+
+                <div class="text-center">
+
+                    <div id="eventNumber" class="text-xs text-gray-400 mb-1">Event #<span id="currentEvent">20240521001</span></div>
+
+                    <div id="timer" class="text-5xl font-mono text-yellow-400 mb-3 font-bold">00:30</div>
+
+                    <div id="diceContainer" class="my-4 flex justify-center">
+
+                        <img id="diceImage" src="https://i.imgur.com/9ppYY9D.png" class="w-24 h-24 dice-image" alt="Dice">
+
+                    </div>
+
+                    <div id="diceResult" class="text-lg font-bold text-gray-400">စောင့်ဆိုင်းနေသည်...</div>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="bg-gradient-to-br from-[#1a0b35] to-[#2d1a5e] rounded-xl p-4 border-2 border-yellow-500/50 mb-3 w-full max-w-lg">
+
+                <div class="text-center">
+
+                    <div id="eventNumber" class="text-xs text-gray-400 mb-1">Event #<span id="currentEvent">0</span></div>
+
+                    <div id="timer" class="text-5xl font-mono text-yellow-400 mb-3 font-bold">00:30</div>
+
+                    <div id="diceContainer" class="my-4 flex justify-center">
+
+                        <img id="diceImage" src="https://i.imgur.com/9ppYY9D.png" class="dice-image" alt="Dice">
+
+                    </div>
+
+                    <div id="diceResult" class="text-lg font-bold text-gray-400"></div>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="w-full max-w-lg mb-3">
+
+                <canvas id="tradingChart" height="120"></canvas>
+
+            </div>
+
+
+
+            <div class="w-full max-w-lg mb-3">
+
+                <p class="text-center text-xs text-gray-400 mb-2">Select Number (1-6)</p>
+
+                <div class="grid grid-cols-6 gap-2 mb-3">
+
+                    <button onclick="openBetModal(1)" class="dice-btn rounded-lg p-1 bg-gradient-to-br from-red-800 to-red-600"><img src="https://i.imgur.com/PyRgTrE.png" class="w-10 h-10 mx-auto"></button>
+
+                    <button onclick="openBetModal(2)" class="dice-btn rounded-lg p-1 bg-gradient-to-br from-red-800 to-red-600"><img src="https://i.imgur.com/YYbRKrl.png" class="w-10 h-10 mx-auto"></button>
+
+                    <button onclick="openBetModal(3)" class="dice-btn rounded-lg p-1 bg-gradient-to-br from-red-800 to-red-600"><img src="https://i.imgur.com/8VGroaW.png" class="w-10 h-10 mx-auto"></button>
+
+                    <button onclick="openBetModal(4)" class="dice-btn rounded-lg p-1 bg-gradient-to-br from-blue-800 to-blue-600"><img src="https://i.imgur.com/Ze3zQ0S.png" class="w-10 h-10 mx-auto"></button>
+
+                    <button onclick="openBetModal(5)" class="dice-btn rounded-lg p-1 bg-gradient-to-br from-blue-800 to-blue-600"><img src="https://i.imgur.com/WVtiIkA.png" class="w-10 h-10 mx-auto"></button>
+
+                    <button onclick="openBetModal(6)" class="dice-btn rounded-lg p-1 bg-gradient-to-br from-blue-800 to-blue-600"><img src="https://i.imgur.com/bH9eXcA.png" class="w-10 h-10 mx-auto"></button>
+
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+
+                    <button onclick="openBetModal('Big')" class="dice-btn bg-gradient-to-r from-blue-700 to-blue-600 p-3 rounded-xl font-bold text-lg">BIG (4-6)</button>
+
+                    <button onclick="openBetModal('Small')" class="dice-btn bg-gradient-to-r from-red-700 to-red-600 p-3 rounded-xl font-bold text-lg">SMALL (1-3)</button>
+
+                </div>
+
+            </div>
+
+
+
+            <div id="currentBetDisplay" class="w-full max-w-lg text-center p-2 rounded-lg bg-black/30 mb-3 hidden">
+
+                <span class="text-gray-400">Your Bet:</span>
+
+                <span id="currentBetInfo" class="text-yellow-400 font-bold ml-2"></span>
+
+                <span id="betStatus" class="pending-tag ml-2">PENDING</span>
+
+            </div>
+
+
+
+            <div class="w-full max-w-lg">
+
+                <div class="flex gap-2 mb-2">
+
+                    <button onclick="switchDiceTab('events')" id="eventsTab" class="tab-btn active flex-1 text-center text-sm">Event History</button>
+
+                    <button onclick="switchDiceTab('myBets')" id="myBetsTab" class="tab-btn flex-1 text-center text-sm">My Bets</button>
+
+                </div>
+
+                <div id="eventsContent" class="bg-black/30 rounded-lg p-3">
+
+                    <div id="eventHistory" class="space-y-1 text-xs max-h-48 overflow-y-auto"></div>
+
+                    <div class="flex justify-center gap-2 mt-2 flex-wrap" id="eventPagination"></div>
+
+                </div>
+
+                <div id="myBetsContent" class="bg-black/30 rounded-lg p-3 hidden">
+
+                    <div id="myBetsHistory" class="space-y-1 text-xs max-h-48 overflow-y-auto"></div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Bet Modal -->
+
+    <div id="betModal" class="modal">
+
+        <div class="bet-modal-content">
+
+            <div class="flex justify-between items-center mb-4">
+
+                <h3 class="text-lg font-bold text-yellow-400">Place Bet: <span id="betChoice"></span></h3>
+
+                <button onclick="closeBetModal()" class="text-red-400 text-xl">✕</button>
+
+            </div>
+
+            <div class="mb-4">
+
+                <p class="text-sm text-gray-400 mb-2">Quick Amount</p>
+
+                <div class="grid grid-cols-4 gap-2">
+
+                    <button onclick="setQuickBet(100)" class="preset-btn text-sm">100</button>
+
+                    <button onclick="setQuickBet(1000)" class="preset-btn text-sm">1K</button>
+
+                    <button onclick="setQuickBet(10000)" class="preset-btn text-sm">10K</button>
+
+                    <button onclick="setQuickBet(100000)" class="preset-btn text-sm">100K</button>
+
+                </div>
+
+            </div>
+
+            <div class="mb-4">
+
+                <p class="text-sm text-gray-400 mb-2">Multiplier</p>
+
+                <div class="grid grid-cols-4 gap-2">
+
+                    <button onclick="setMultiplier(5)" class="multiplier-btn text-sm">5x</button>
+
+                    <button onclick="setMultiplier(10)" class="multiplier-btn text-sm">10x</button>
+
+                    <button onclick="setMultiplier(50)" class="multiplier-btn text-sm">50x</button>
+
+                    <button onclick="setMultiplier(100)" class="multiplier-btn text-sm">100x</button>
+
+                </div>
+
+            </div>
+
+            <div class="mb-4">
+
+                <input type="number" id="customBetAmount" placeholder="Enter amount" class="w-full p-3 rounded-lg bg-gray-800/50 border border-gray-600">
+
+            </div>
+
+            <div class="text-center mb-4">
+
+                <p class="text-gray-400">Total: <span id="totalBetAmount" class="text-yellow-400 font-bold text-xl">0</span></p>
+
+            </div>
+
+            <button onclick="confirmBet()" class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 p-3 rounded-lg font-bold">Confirm Bet</button>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- High Bet Confirmation Modal -->
+
+    <div id="highBetModal" class="modal">
+
+        <div class="bet-modal-content text-center">
+
+            <h3 class="text-xl font-bold text-yellow-400 mb-4">⚠️ High Value Bet</h3>
+
+            <p class="text-gray-300 mb-4">You are about to place a bet of <span id="highBetAmount" class="text-yellow-400 font-bold"></span></p>
+
+            <p class="text-gray-400 mb-6">Are you sure you want to proceed?</p>
+
+            <div class="flex gap-4">
+
+                <button onclick="cancelHighBet()" class="flex-1 bg-gray-600 p-3 rounded-lg font-bold">Cancel</button>
+
+                <button onclick="confirmHighBet()" class="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-600 p-3 rounded-lg font-bold">Confirm</button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Result Screen -->
+
+    <div id="resultScreen" class="result-screen hidden">
+
+        <div id="resultContent" class="text-center">
+
+            <div id="resultIcon" class="text-8xl mb-4"></div>
+
+            <div id="resultTitle" class="text-3xl font-bold mb-2"></div>
+
+            <div id="resultAmount" class="mb-4"></div>
+
+            <button onclick="closeResultScreen()" class="bg-gradient-to-r from-purple-600 to-purple-700 px-8 py-3 rounded-lg font-bold">Continue</button>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Ying Yang Slot Game UI -->
+
+    <div id="slot-ui" class="hidden fixed inset-0 bg-gradient-to-b from-[#0f0524] to-[#1a0b35] z-40 overflow-y-auto">
+
+        <div class="p-3 flex justify-between items-center bg-black/30">
+
+            <button onclick="closeSlotGame()" class="text-lg hover:text-yellow-400">← Back</button>
+
+            <div class="text-center">
+
+                <span class="text-gray-400 text-sm">Balance: </span>
+
+                <span id="slotBalance" class="text-green-400 font-bold text-lg">0</span>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="flex flex-col items-center px-4 pb-20">
+
+            <div class="flex items-center gap-2 mb-3">
+
+                <h2 class="text-xl font-bold text-yellow-400">☯️ Ying Yang Slot ☯️</h2>
+
+                <div onclick="openSpecialGameModal()" class="cursor-pointer relative">
+
+                    <img src="https://i.imgur.com/Fibm3wW.png" class="w-8 h-8 yingyang-glow rounded-full" title="Special Game">
+
+                </div>
+
+            </div>
+
+
+
+            <div class="w-full max-w-lg mb-3">
+
+                <div id="slotGrid" class="slot-grid mb-3">
+
+                    <div class="slot-cell" data-pos="0"><img src="https://i.imgur.com/u4VZBZF.jpeg" alt="fire"></div>
+
+                    <div class="slot-cell" data-pos="1"><img src="https://i.imgur.com/0pTBtXe.jpeg" alt="ice"></div>
+
+                    <div class="slot-cell" data-pos="2"><img src="https://i.imgur.com/IuvGEqm.jpeg" alt="sword"></div>
+
+                    <div class="slot-cell" data-pos="3"><img src="https://i.imgur.com/Fibm3wW.png" alt="yingyang"></div>
+
+                    <div class="slot-cell" data-pos="4"><img src="https://i.imgur.com/u4VZBZF.jpeg" alt="fire"></div>
+
+                    <div class="slot-cell" data-pos="5"><span class="text-3xl">7️⃣</span></div>
+
+                    <div class="slot-cell" data-pos="6"><span class="text-3xl">8️⃣</span></div>
+
+                    <div class="slot-cell" data-pos="7"><span class="text-3xl">9️⃣</span></div>
+
+                    <div class="slot-cell" data-pos="8"><img src="https://i.imgur.com/0pTBtXe.jpeg" alt="ice"></div>
+
+                    <div class="slot-cell" data-pos="9"><img src="https://i.imgur.com/IuvGEqm.jpeg" alt="sword"></div>
+
+                    <div class="slot-cell" data-pos="10"><span class="text-3xl">1️⃣</span></div>
+
+                    <div class="slot-cell" data-pos="11"><span class="text-3xl">2️⃣</span></div>
+
+                    <div class="slot-cell" data-pos="12"><span class="text-3xl">3️⃣</span></div>
+
+                    <div class="slot-cell" data-pos="13"><span class="text-3xl">4️⃣</span></div>
+
+                    <div class="slot-cell" data-pos="14"><span class="text-3xl">5️⃣</span></div>
+
+                </div>
+
+
+
+                <div id="slotResult" class="text-center text-lg font-bold mb-3 h-6 text-yellow-400"></div>
+
+
+
+                <div class="flex justify-between items-center bg-black/30 p-2 rounded-lg mb-3 text-sm">
+
+                    <div class="text-center">
+
+                        <p class="text-xs text-gray-400">Free Spins</p>
+
+                        <p id="freeSpins" class="text-yellow-400 font-bold">0</p>
+
+                    </div>
+
+                    <div class="text-center">
+
+                        <p class="text-xs text-gray-400">Auto</p>
+
+                        <p id="autoSpinsLeft" class="text-green-400 font-bold">0</p>
+
+                    </div>
+
+                    <div class="text-center">
+
+                        <p class="text-xs text-gray-400">Last Win</p>
+
+                        <p id="lastWin" class="text-yellow-400 font-bold">0</p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="w-full max-w-lg space-y-3">
+
+                <div class="flex items-center gap-3">
+
+                    <span class="text-gray-400 text-sm">Bet:</span>
+
+                    <select id="slotBetAmount" class="flex-1 p-2 rounded-lg bg-gray-800 border border-gray-600 text-sm">
+
+                        <option value="80">80</option>
+
+                        <option value="150">150</option>
+
+                        <option value="300">300</option>
+
+                        <option value="500">500</option>
+
+                        <option value="800">800</option>
+
+                        <option value="1500">1,500</option>
+
+                        <option value="2400">2,400</option>
+
+                        <option value="3600">3,600</option>
+
+                        <option value="6200">6,200</option>
+
+                        <option value="8800">8,800</option>
+
+                        <option value="12000">12,000</option>
+
+                        <option value="25000">25,000</option>
+
+                        <option value="50000">50,000</option>
+
+                    </select>
+
+                </div>
+
+
+
+                <div class="grid grid-cols-2 gap-2">
+
+                    <button onclick="spinSlot()" id="spinBtn" class="bg-gradient-to-r from-yellow-500 to-yellow-600 p-3 rounded-xl font-bold text-lg">🎰 SPIN</button>
+
+                    <button onclick="openSpecialGameModal()" id="specialBtn" class="special-game-btn p-3 rounded-xl font-bold text-sm relative">
+
+                        <img src="https://i.imgur.com/Fibm3wW.png" class="special-icon">
+
+                        ✨ SPECIAL
+
+                    </button>
+
+                </div>
+
+
+
+                <div class="flex gap-2">
+
+                    <span class="text-gray-400 text-xs self-center">Auto:</span>
+
+                    <button onclick="startAutoSpin(10)" class="flex-1 bg-purple-700 p-2 rounded-lg text-xs">10</button>
+
+                    <button onclick="startAutoSpin(25)" class="flex-1 bg-purple-700 p-2 rounded-lg text-xs">25</button>
+
+                    <button onclick="startAutoSpin(50)" class="flex-1 bg-purple-700 p-2 rounded-lg text-xs">50</button>
+
+                    <button onclick="startAutoSpin(100)" class="flex-1 bg-purple-700 p-2 rounded-lg text-xs">100</button>
+
+                    <button onclick="stopAutoSpin()" class="bg-red-600 px-3 p-2 rounded-lg text-xs">Stop</button>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="mt-3 text-xs text-gray-500 text-center space-y-1">
+
+                <p>❄️ Ice (3x:4x, 4x:5x, 5x:6x) | 🔥 Fire (3x:5x, 4x:6x, 5x:7x) | ⚔️ Sword (3x:10x, 4x:12x, 5x:15x)</p>
+
+                <p>☯️ Scatter: 3 = 8 Spins, 4 = 9 Spins, 5 = 10 Spins</p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Special Game Modal -->
+
+    <div id="specialGameModal" class="modal">
+
+        <div class="bet-modal-content text-center">
+
+            <div class="flex justify-between items-center mb-4">
+
+                <h3 class="text-xl font-bold text-yellow-400">✨ Special Game</h3>
+
+                <button onclick="closeModal('specialGameModal')" class="text-red-400 text-xl">✕</button>
+
+            </div>
+
+            <img src="https://i.imgur.com/Fibm3wW.png" class="w-20 h-20 mx-auto yingyang-glow rounded-full mb-4">
+
+            <p class="text-gray-300 mb-4">Buy Feature: Pay <span class="text-yellow-400 font-bold">14x</span> your bet to trigger an immediate 3-Scatter drop with 10 Free Spins!</p>
+
+            <div class="bg-black/30 p-3 rounded-lg mb-4">
+
+                <p class="text-sm text-gray-400">Current Bet: <span id="specialBetDisplay" class="text-yellow-400 font-bold">80</span></p>
+
+                <p class="text-lg text-yellow-400 font-bold">Cost: <span id="specialCostDisplay">1,120</span></p>
+
+            </div>
+
+            <button onclick="buySpecialGame()" class="w-full bg-gradient-to-r from-orange-500 to-red-500 p-3 rounded-lg font-bold">Buy Special Game</button>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Big Win Popup -->
+
+    <div id="bigWinPopup" class="big-win-popup hidden" onclick="closeBigWin()">
+
+        <div id="winType" class="big-win-text mb-2">🎉 BIG WIN! 🎉</div>
+
+        <div id="bigWinAmount" class="text-4xl text-yellow-400 font-bold mb-6 count-up">+0</div>
+
+        <p class="text-gray-400">Tap anywhere to continue</p>
+
+    </div>
+
+
+
+    <!-- VIP Modal -->
+
+    <div id="vipModal" class="modal">
+
+        <div class="modal-content">
+
+            <div class="flex justify-between items-center mb-4">
+
+                <h3 class="text-xl font-bold text-yellow-500">🏆 VIP Level</h3>
+
+                <button onclick="closeModal('vipModal')" class="text-red-400 text-xl">✕</button>
+
+            </div>
+
+            <div class="text-center mb-4">
+
+                <div id="currentVipBadge" class="vip-lv1 px-4 py-2 inline-block rounded-lg text-lg font-bold mb-2">VIP LV 1</div>
+
+                <p class="text-gray-400 text-sm">Turnover: <span id="totalTurnover" class="text-green-400">0</span></p>
+
+            </div>
+
+            <div class="mb-4">
+
+                <div class="progress-bar">
+
+                    <div id="vipProgress" class="progress-fill" style="width: 0%"></div>
+
+                </div>
+
+                <p id="vipProgressText" class="text-xs text-gray-500 mt-1">0 / 100,000</p>
+
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 mb-4">
+
+                <button onclick="claimVipReward()" class="bg-gradient-to-r from-yellow-500 to-yellow-600 p-2 rounded-lg font-bold text-sm">🎁 Claim Reward</button>
+
+                <button onclick="claimMonthlySalary()" class="bg-gradient-to-r from-purple-600 to-purple-700 p-2 rounded-lg font-bold text-sm">💰 Monthly Salary</button>
+
+            </div>
+
+            <div class="space-y-2 text-xs max-h-48 overflow-y-auto">
+
+                <div class="flex justify-between items-center p-2 rounded bg-blue-900/30"><span class="vip-lv1 px-2 py-1 rounded">LV1</span><span>100K</span><span class="text-yellow-400">1.5K/1K</span></div>
+
+                <div class="flex justify-between items-center p-2 rounded bg-orange-900/30"><span class="vip-lv2 px-2 py-1 rounded">LV2</span><span>800K</span><span class="text-yellow-400">15K/10K</span></div>
+
+                <div class="flex justify-between items-center p-2 rounded bg-gray-700/30"><span class="vip-lv3 px-2 py-1 rounded">LV3</span><span>3M</span><span class="text-yellow-400">45K/30K</span></div>
+
+                <div class="flex justify-between items-center p-2 rounded bg-yellow-900/30"><span class="vip-lv4 px-2 py-1 rounded">LV4</span><span>10M</span><span class="text-yellow-400">150K/100K</span></div>
+
+                <div class="flex justify-between items-center p-2 rounded bg-red-900/30"><span class="vip-lv5 px-2 py-1 rounded">LV5</span><span>35M</span><span class="text-yellow-400">320K/180K</span></div>
+
+                <div class="flex justify-between items-center p-2 rounded bg-white/10"><span class="vip-lv6 px-2 py-1 rounded">LV6</span><span>100M</span><span class="text-yellow-400">1.5M/1M</span></div>
+
+                <div class="flex justify-between items-center p-2 rounded bg-purple-900/30"><span class="vip-lv7 px-2 py-1 rounded">LV7</span><span>1B</span><span class="text-yellow-400">15M/10M</span></div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Analytics Modal -->
+
+    <div id="analyticsModal" class="modal">
+
+        <div class="modal-content">
+
+            <div class="flex justify-between items-center mb-4">
+
+                <h3 class="text-xl font-bold text-yellow-500">📊 Analytics</h3>
+
+                <button onclick="closeModal('analyticsModal')" class="text-red-400 text-xl">✕</button>
+
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+
+                <div class="bg-black/30 p-3 rounded-lg text-center">
+
+                    <p class="text-xs text-gray-400">Total Profit</p>
+
+                    <p id="totalProfit" class="text-green-400 font-bold text-xl">0</p>
+
+                </div>
+
+                <div class="bg-black/30 p-3 rounded-lg text-center">
+
+                    <p class="text-xs text-gray-400">Total Loss</p>
+
+                    <p id="totalLoss" class="text-red-400 font-bold text-xl">0</p>
+
+                </div>
+
+            </div>
+
+            <div class="space-y-3">
+
+                <div class="bg-black/30 p-3 rounded-lg">
+
+                    <p class="text-sm text-gray-400 mb-1">🎲 Big/Small Game</p>
+
+                    <div class="flex justify-between">
+
+                        <span class="text-green-400">Win: <span id="diceWin">0</span></span>
+
+                        <span class="text-red-400">Loss: <span id="diceLoss">0</span></span>
+
+                    </div>
+
+                </div>
+
+                <div class="bg-black/30 p-3 rounded-lg">
+
+                    <p class="text-sm text-gray-400 mb-1">☯️ Ying Yang Slot</p>
+
+                    <div class="flex justify-between">
+
+                        <span class="text-green-400">Win: <span id="slotWin">0</span></span>
+
+                        <span class="text-red-400">Loss: <span id="slotLoss">0</span></span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Notification Modal -->
+
+    <div id="notificationModal" class="modal">
+
+        <div class="modal-content">
+
+            <div class="flex justify-between items-center mb-4">
+
+                <h3 class="text-xl font-bold text-yellow-500">🔔 Notifications</h3>
+
+                <button onclick="closeModal('notificationModal')" class="text-red-400 text-xl">✕</button>
+
+            </div>
+
+            <div id="notificationList" class="space-y-2 max-h-80 overflow-y-auto">
+
+                <p class="text-gray-400">No notifications</p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Money History Modal -->
+
+    <div id="historyModal" class="modal">
+
+        <div class="modal-content">
+
+            <div class="flex justify-between items-center mb-4">
+
+                <h3 class="text-xl font-bold text-yellow-500">📜 Money History</h3>
+
+                <button onclick="closeModal('historyModal')" class="text-red-400 text-xl">✕</button>
+
+            </div>
+
+            <div id="historyList" class="space-y-2 max-h-80 overflow-y-auto">
+
+                <p class="text-gray-400">No transactions yet</p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- MLM Modal -->
+
+    <div id="mlmModal" class="modal">
+
+        <div class="modal-content">
+
+            <div class="flex justify-between items-center mb-4">
+
+                <h3 class="text-xl font-bold text-yellow-500">💰 Commission (MLM)</h3>
+
+                <button onclick="closeModal('mlmModal')" class="text-red-400 text-xl">✕</button>
+
+            </div>
+
+            <div class="mb-4">
+
+                <p class="text-sm text-gray-300">Earn 10% commission on referral deposits!</p>
+
+                <p class="mt-2">Code: <span id="myInviteCode" class="text-yellow-400 font-bold">Loading...</span></p>
+
+                <button onclick="copyInviteCode()" class="mt-2 bg-purple-600 px-4 py-2 rounded text-sm">Copy Link</button>
+
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+
+                <div class="text-center p-3 bg-black/30 rounded-lg">
+
+                    <p class="text-xs text-gray-400">Total Earned</p>
+
+                    <p id="totalCommission" class="text-green-400 font-bold text-xl">0</p>
+
+                </div>
+
+                <div class="text-center p-3 bg-black/30 rounded-lg">
+
+                    <p class="text-xs text-gray-400">Referrals</p>
+
+                    <p id="totalReferrals" class="text-blue-400 font-bold text-xl">0</p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Finance Modal -->
+
+    <div id="financeModal" class="modal">
+
+        <div class="modal-content">
+
+            <div class="flex justify-between items-center mb-4">
+
+                <h3 class="text-xl font-bold text-yellow-500">💳 Deposit & Withdraw</h3>
+
+                <button onclick="closeModal('financeModal')" class="text-red-400 text-xl">✕</button>
+
+            </div>
+
+            <div class="flex gap-2 mb-4">
+
+                <button onclick="switchFinanceTab('deposit')" id="depositTab" class="tab-btn active flex-1 text-center">Deposit</button>
+
+                <button onclick="switchFinanceTab('withdraw')" id="withdrawTab" class="tab-btn flex-1 text-center">Withdraw</button>
+
+            </div>
+
+            <div id="depositContent" class="tab-content active">
+
+                <div class="space-y-3">
+
+                    <div class="grid grid-cols-2 gap-2">
+
+                        <button onclick="selectPayment('deposit', 'KBZPay')" id="depositKBZ" class="p-2 rounded bg-blue-600 border-2 border-blue-400 text-sm">KBZPay</button>
+
+                        <button onclick="selectPayment('deposit', 'WavePay')" id="depositWave" class="p-2 rounded bg-gray-700 border-2 border-gray-600 text-sm">Wave Pay</button>
+
+                    </div>
+
+                    <div id="depositPaymentInfo" class="bg-gray-800/50 p-2 rounded text-xs">
+
+                        <p class="text-yellow-400 font-bold">KBZPay:</p>
+
+                        <p id="depositPayPhone">Loading...</p>
+
+                        <p id="depositPayName">Loading...</p>
+
+                    </div>
+
+                    <input type="text" id="depositPhone" placeholder="Your Phone" class="w-full p-2 rounded bg-gray-800/50 border border-gray-600 text-sm">
+
+                    <input type="text" id="depositAccName" placeholder="Your Name" class="w-full p-2 rounded bg-gray-800/50 border border-gray-600 text-sm">
+
+                    <input type="number" id="depositAmount" placeholder="Amount" class="w-full p-2 rounded bg-gray-800/50 border border-gray-600 text-sm">
+
+                    <input type="text" id="depositTxId" placeholder="Last 5 digits of TX ID" maxlength="5" class="w-full p-2 rounded bg-gray-800/50 border border-gray-600 text-sm">
+
+                    <button onclick="submitDeposit()" class="w-full bg-green-600 p-2 rounded font-bold text-sm">Submit Deposit</button>
+
+                </div>
+
+            </div>
+
+            <div id="withdrawContent" class="tab-content hidden">
+
+                <div class="space-y-3">
+
+                    <div class="grid grid-cols-2 gap-2">
+
+                        <button onclick="selectPayment('withdraw', 'KBZPay')" id="withdrawKBZ" class="p-2 rounded bg-blue-600 border-2 border-blue-400 text-sm">KBZPay</button>
+
+                        <button onclick="selectPayment('withdraw', 'WavePay')" id="withdrawWave" class="p-2 rounded bg-gray-700 border-2 border-gray-600 text-sm">Wave Pay</button>
+
+                    </div>
+
+                    <input type="text" id="withdrawAccNo" placeholder="Account Number" class="w-full p-2 rounded bg-gray-800/50 border border-gray-600 text-sm">
+
+                    <input type="text" id="withdrawAccName" placeholder="Account Name" class="w-full p-2 rounded bg-gray-800/50 border border-gray-600 text-sm">
+
+                    <input type="number" id="withdrawAmount" placeholder="Amount" class="w-full p-2 rounded bg-gray-800/50 border border-gray-600 text-sm">
+
+                    <button onclick="submitWithdraw()" class="w-full bg-red-600 p-2 rounded font-bold text-sm">Submit Withdraw</button>
+
+                </div>
+
+            </div>
+
+            <div class="border-t border-gray-600 mt-4 pt-4">
+
+                <div id="financeHistory" class="space-y-2 text-xs max-h-32 overflow-y-auto"></div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Admin Panel Modal -->
+
+    <div id="adminModal" class="modal">
+
+        <div class="modal-content" style="max-width: 900px;">
+
+            <div class="flex justify-between items-center mb-4">
+
+                <h3 class="text-xl font-bold text-red-500">⚙️ Admin Panel</h3>
+
+                <button onclick="closeModal('adminModal')" class="text-red-400 text-xl">✕</button>
+
+            </div>
+
+
+
+            <div class="grid grid-cols-4 gap-2 mb-4">
+
+                <div class="bg-black/30 p-2 rounded-lg text-center">
+
+                    <p class="text-xs text-gray-400">Total Online</p>
+
+                    <p id="totalOnline" class="text-green-400 font-bold text-xl">0</p>
+
+                </div>
+
+                <div class="bg-black/30 p-2 rounded-lg text-center">
+
+                    <p class="text-xs text-gray-400">In Dice</p>
+
+                    <p id="dicePlayersOnline" class="text-blue-400 font-bold text-xl">0</p>
+
+                </div>
+
+                <div class="bg-black/30 p-2 rounded-lg text-center">
+
+                    <p class="text-xs text-gray-400">In Slot</p>
+
+                    <p id="slotPlayersOnline" class="text-purple-400 font-bold text-xl">0</p>
+
+                </div>
+
+                <div class="bg-black/30 p-2 rounded-lg text-center">
+
+                    <p class="text-xs text-gray-400">Today P/L</p>
+
+                    <p id="todayPL" class="text-yellow-400 font-bold text-lg">0</p>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+
+                <div class="bg-green-900/30 p-3 rounded-lg text-center">
+
+                    <p class="text-xs text-gray-400">Today Deposits</p>
+
+                    <p id="todayDeposits" class="text-green-400 font-bold text-xl">0</p>
+
+                </div>
+
+                <div class="bg-red-900/30 p-3 rounded-lg text-center">
+
+                    <p class="text-xs text-gray-400">Today Withdrawals</p>
+
+                    <p id="todayWithdrawals" class="text-red-400 font-bold text-xl">0</p>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="flex flex-wrap gap-2 mb-4">
+
+                <button onclick="switchAdminTab('requests')" class="admin-tab-btn tab-btn active text-xs">Requests</button>
+
+                <button onclick="switchAdminTab('liveFeed')" class="admin-tab-btn tab-btn text-xs">Live Feed</button>
+
+                <button onclick="switchAdminTab('transfer')" class="admin-tab-btn tab-btn text-xs">Transfer</button>
+
+                <button onclick="switchAdminTab('games')" class="admin-tab-btn tab-btn text-xs">Games</button>
+
+                <button onclick="switchAdminTab('users')" class="admin-tab-btn tab-btn text-xs">Users</button>
+
+                <button onclick="switchAdminTab('settings')" class="admin-tab-btn tab-btn text-xs">Settings</button>
+
+                <button onclick="switchAdminTab('notice')" class="admin-tab-btn tab-btn text-xs">Notice</button>
+
+            </div>
+
+
+
+            <div id="adminRequests" class="admin-tab-content">
+
+                <div class="admin-section">
+
+                    <h4 class="font-bold text-yellow-400 mb-2 text-sm">Pending Deposits</h4>
+
+                    <div id="adminPendingDeposits" class="space-y-2 max-h-32 overflow-y-auto text-xs"></div>
+
+                </div>
+
+                <div class="admin-section">
+
+                    <h4 class="font-bold text-yellow-400 mb-2 text-sm">Pending Withdrawals</h4>
+
+                    <div id="adminPendingWithdrawals" class="space-y-2 max-h-32 overflow-y-auto text-xs"></div>
+
+                </div>
+
+            </div>
+
+
+
+            <div id="adminLiveFeed" class="admin-tab-content hidden">
+
+                <div class="admin-section">
+
+                    <h4 class="font-bold text-yellow-400 mb-2 text-sm">Live Bet Feed</h4>
+
+                    <div id="liveBetFeed" class="space-y-1 max-h-64 overflow-y-auto text-xs"></div>
+
+                </div>
+
+            </div>
+
+
+
+            <div id="adminTransfer" class="admin-tab-content hidden">
+
+                <div class="admin-section">
+
+                    <h4 class="font-bold text-yellow-400 mb-2 text-sm">Manual Transfer</h4>
+
+                    <div class="space-y-2">
+
+                        <input type="text" id="transferUserId" placeholder="User ID (7T-XXXXXX)" class="w-full p-2 rounded bg-gray-800 border border-gray-600 text-sm">
+
+                        <input type="number" id="transferAmount" placeholder="Amount (- to deduct)" class="w-full p-2 rounded bg-gray-800 border border-gray-600 text-sm">
+
+                        <input type="text" id="transferReason" placeholder="Reason" class="w-full p-2 rounded bg-gray-800 border border-gray-600 text-sm">
+
+                        <button onclick="manualTransfer()" class="w-full admin-btn p-2 rounded font-bold text-sm">Execute</button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <div id="adminGames" class="admin-tab-content hidden">
+
+                <div class="admin-section">
+
+                    <h4 class="font-bold text-yellow-400 mb-2 text-sm">Force Dice Result</h4>
+
+                    <div class="grid grid-cols-6 gap-2 mb-2">
+
+                        <button onclick="forceDiceResult(1)" class="p-1 rounded"><img src="https://i.imgur.com/PyRgTrE.png" class="w-10 h-10 mx-auto"></button>
+
+                        <button onclick="forceDiceResult(2)" class="p-1 rounded"><img src="https://i.imgur.com/YYbRKrl.png" class="w-10 h-10 mx-auto"></button>
+
+                        <button onclick="forceDiceResult(3)" class="p-1 rounded"><img src="https://i.imgur.com/8VGroaW.png" class="w-10 h-10 mx-auto"></button>
+
+                        <button onclick="forceDiceResult(4)" class="p-1 rounded"><img src="https://i.imgur.com/Ze3zQ0S.png" class="w-10 h-10 mx-auto"></button>
+
+                        <button onclick="forceDiceResult(5)" class="p-1 rounded"><img src="https://i.imgur.com/WVtiIkA.png" class="w-10 h-10 mx-auto"></button>
+
+                        <button onclick="forceDiceResult(6)" class="p-1 rounded"><img src="https://i.imgur.com/bH9eXcA.png" class="w-10 h-10 mx-auto"></button>
+
+                    </div>
+
+                    <button onclick="clearForcedDice()" class="w-full bg-gray-600 p-2 rounded text-xs">Clear</button>
+
+                    <p id="forcedResultDisplay" class="text-yellow-400 mt-2 text-xs">Current: None</p>
+
+                </div>
+
+                <div class="admin-section">
+
+                    <h4 class="font-bold text-yellow-400 mb-2 text-sm">Slot Win Rate</h4>
+
+                    <div class="flex items-center gap-4">
+
+                        <input type="range" id="slotWinRate" min="10" max="40" value="20" class="flex-1" oninput="updateWinRateDisplay()">
+
+                        <span id="winRateDisplay" class="font-bold">20%</span>
+
+                    </div>
+
+                    <button onclick="saveSlotWinRate()" class="mt-2 admin-btn px-4 py-2 rounded text-sm">Save</button>
+
+                </div>
+
+            </div>
+
+
+
+            <div id="adminUsers" class="admin-tab-content hidden">
+
+                <div class="admin-section">
+
+                    <h4 class="font-bold text-yellow-400 mb-2 text-sm">Users (Profit Margin)</h4>
+
+                    <div id="adminUserList" class="space-y-2 max-h-64 overflow-y-auto text-xs"></div>
+
+                </div>
+
+            </div>
+
+
+
+            <div id="adminSettings" class="admin-tab-content hidden">
+
+                <div class="admin-section">
+
+                    <h4 class="font-bold text-yellow-400 mb-2 text-sm">Payment Settings</h4>
+
+                    <div class="space-y-2">
+
+                        <input type="text" id="settingsKBZPhone" placeholder="KBZPay Phone" class="w-full p-2 rounded bg-gray-800 border border-gray-600 text-sm">
+
+                        <input type="text" id="settingsKBZName" placeholder="KBZPay Name" class="w-full p-2 rounded bg-gray-800 border border-gray-600 text-sm">
+
+                        <input type="text" id="settingsWavePhone" placeholder="Wave Phone" class="w-full p-2 rounded bg-gray-800 border border-gray-600 text-sm">
+
+                        <input type="text" id="settingsWaveName" placeholder="Wave Name" class="w-full p-2 rounded bg-gray-800 border border-gray-600 text-sm">
+
+                        <button onclick="savePaymentSettings()" class="w-full admin-btn p-2 rounded font-bold text-sm">Save</button>
+
+                    </div>
+
+                </div>
+
+                <div class="admin-section">
+
+                    <h4 class="font-bold text-yellow-400 mb-2 text-sm">Ads Banner</h4>
+
+                    <textarea id="settingsAdLink" placeholder="HTML/Text for ads" rows="3" class="w-full p-2 rounded bg-gray-800 border border-gray-600 text-sm"></textarea>
+
+                    <button onclick="saveAdSettings()" class="mt-2 admin-btn px-4 py-2 rounded text-sm">Save</button>
+
+                </div>
+
+            </div>
+
+
+
+            <div id="adminNotice" class="admin-tab-content hidden">
+
+                <div class="admin-section">
+
+                    <h4 class="font-bold text-yellow-400 mb-2 text-sm">Send Global Notice</h4>
+
+                    <textarea id="globalNoticeText" placeholder="Notice message for all online users" rows="3" class="w-full p-2 rounded bg-gray-800 border border-gray-600 text-sm mb-2"></textarea>
+
+                    <button onclick="sendGlobalNotice()" class="w-full admin-btn p-2 rounded font-bold text-sm">Send to All</button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <script>
+
+        const firebaseConfig = {
+
+            apiKey: "AIzaSyCvHbnfWgTS7Fb3KWhPg01Y4AJK8T90j8I",
+
+            authDomain: "games-e5d07.firebaseapp.com",
+
+            databaseURL: "https://games-e5d07-default-rtdb.asia-southeast1.firebasedatabase.app",
+
+            projectId: "games-e5d07",
+
+            storageBucket: "games-e5d07.firebasestorage.app",
+
+            messagingSenderId: "806130492193",
+
+            appId: "1:806130492193:web:ecdc1445acdbd680b29460"
+
+        };
+
+
+
+        firebase.initializeApp(firebaseConfig);
+
+        const auth = firebase.auth();
+
+        const db = firebase.database();
+
+
+
+        let currentUser = null;
+
+        let userData = null;
+
+        let forcedDiceResult = null;
+
+        let globalSlotWinRate = 20;
+
+        let paymentSettings = {};
+
+        let selectedDepositMethod = 'KBZPay';
+
+        let selectedWithdrawMethod = 'KBZPay';
+
+        let timerMode = 30;
+
+        let tradingChart = null;
+
+        let deviceId = localStorage.getItem('deviceId') || generateDeviceId();
+
+
+
+        const ADMIN_EMAIL = 'xztka49@gmail.com';
+
+        const VIP_LEVELS = [
+
+            { level: 1, turnover: 100000, reward: 1500, monthly: 1000 },
+
+            { level: 2, turnover: 800000, reward: 15000, monthly: 10000 },
+
+            { level: 3, turnover: 3000000, reward: 45000, monthly: 30000 },
+
+            { level: 4, turnover: 10000000, reward: 150000, monthly: 100000 },
+
+            { level: 5, turnover: 35000000, reward: 320000, monthly: 180000 },
+
+            { level: 6, turnover: 100000000, reward: 1500000, monthly: 1000000 },
+
+            { level: 7, turnover: 1000000000, reward: 15000000, monthly: 10000000 }
+
+        ];
+
+
+
+        const DICE_IMAGES = {
+
+            1: 'https://i.imgur.com/PyRgTrE.png',
+
+            2: 'https://i.imgur.com/YYbRKrl.png',
+
+            3: 'https://i.imgur.com/8VGroaW.png',
+
+            4: 'https://i.imgur.com/Ze3zQ0S.png',
+
+            5: 'https://i.imgur.com/WVtiIkA.png',
+
+            6: 'https://i.imgur.com/bH9eXcA.png'
+
+        };
+
+
+
+        const SLOT_ASSETS = {
+
+            '1': { type: 'emoji', value: '1️⃣', payout3: 0.2, payout4: 0.7, payout5: 1.2 },
+
+            '2': { type: 'emoji', value: '2️⃣', payout3: 0.3, payout4: 0.8, payout5: 1.3 },
+
+            '3': { type: 'emoji', value: '3️⃣', payout3: 0.4, payout4: 0.9, payout5: 1.4 },
+
+            '4': { type: 'emoji', value: '4️⃣', payout3: 0.5, payout4: 1.0, payout5: 1.5 },
+
+            '5': { type: 'emoji', value: '5️⃣', payout3: 0.6, payout4: 1.1, payout5: 1.6 },
+
+            '6': { type: 'emoji', value: '6️⃣', payout3: 0.7, payout4: 1.2, payout5: 1.7 },
+
+            '7': { type: 'emoji', value: '7️⃣', payout3: 0.8, payout4: 1.3, payout5: 1.8 },
+
+            '8': { type: 'emoji', value: '8️⃣', payout3: 0.9, payout4: 1.4, payout5: 1.9 },
+
+            '9': { type: 'emoji', value: '9️⃣', payout3: 1.0, payout4: 1.5, payout5: 2.0 },
+
+            'ice': { type: 'img', src: 'https://i.imgur.com/0pTBtXe.jpeg', payout3: 4, payout4: 5, payout5: 6, effect: 'ice-glow' },
+
+            'fire': { type: 'img', src: 'https://i.imgur.com/u4VZBZF.jpeg', payout3: 5, payout4: 6, payout5: 7, effect: 'fire-glow' },
+
+            'sword': { type: 'img', src: 'https://i.imgur.com/IuvGEqm.jpeg', payout3: 10, payout4: 12, payout5: 15, effect: 'sword-glow' },
+
+            'yingyang': { type: 'img', src: 'https://i.imgur.com/Fibm3wW.png', payout3: 0, effect: 'yingyang-glow' }
+
+        };
+
+
+
+        const SLOT_KEYS = Object.keys(SLOT_ASSETS);
+
+
+
+        let freeSpins = 0;
+
+        let slotSpinning = false;
+
+        let autoSpinsLeft = 0;
+
+        let specialGameActive = false;
+
+        let roundEndTime = 0;
+
+        let currentEventNumber = 0;
+
+        let diceTimerInterval = null;
+
+        let currentBetChoice = null;
+
+        let currentBetAmount = 0;
+
+        let pendingBet = null;
+
+        let pendingBetAmount = 0;
+
+        let eventHistoryPage = 1;
+
+        let allDiceHistory = [];
+
+        let serverTimeOffset = 0;
+
+
+
+        function generateDeviceId() {
+
+            const id = 'dev_' + Math.random().toString(36).substr(2, 16);
+
+            localStorage.setItem('deviceId', id);
+
+            return id;
+
+        }
+
+
+
+        function playSound(id, loop = false) {
+
+            try {
+
+                const sound = document.getElementById(id);
+
+                if (sound) {
+
+                    sound.loop = loop;
+
+                    sound.currentTime = 0;
+
+                    sound.play().catch(() => {});
+
+                }
+
+            } catch (e) {}
+
+        }
+
+
+
+        function stopSound(id) {
+
+            try {
+
+                const sound = document.getElementById(id);
+
+                if (sound) { sound.pause(); sound.currentTime = 0; }
+
+            } catch (e) {}
+
+        }
+
+
+
+        function showToast(message, type = 'success') {
+
+            const container = document.getElementById('toast-container');
+
+            const toast = document.createElement('div');
+
+            toast.className = `toast toast-${type}`;
+
+            toast.textContent = message;
+
+            container.appendChild(toast);
+
+            if (type === 'error') playSound('errorSound');
+
+            setTimeout(() => toast.remove(), 3000);
+
+        }
+
+
+
+        function generateInviteCode(uid) { return '7T-' + uid.substring(0, 6).toUpperCase(); }
+
+        function formatNumber(num) { return (num || 0).toLocaleString(); }
+
+
+
+        function getServerTime() { return Date.now() + serverTimeOffset; }
+
+
+
+        async function syncServerTime() {
+
+            const serverTimeRef = db.ref('.info/serverTimeOffset');
+
+            const snapshot = await serverTimeRef.once('value');
+
+            serverTimeOffset = snapshot.val() || 0;
+
+        }
+
+
+
+        let isAuthLoading = false;
+
+
+
+        async function handleAuth() {
+
+            if (isAuthLoading) return;
+
+            const email = document.getElementById('email').value.trim();
+
+            const password = document.getElementById('pass').value;
+
+            const inviteCode = document.getElementById('invite').value.trim();
+
+
+
+            if (!email || !password) { showAuthError('Please enter email and password'); return; }
+
+            if (password.length < 6) { showAuthError('Password must be at least 6 characters'); return; }
+
+
+
+            setAuthLoading(true);
+
+
+
+            try {
+
+                try { await auth.signOut(); } catch (e) {}
+
+
+
+                try {
+
+                    const userCredential = await auth.signInWithEmailAndPassword(email, password);
+
+                    const uid = userCredential.user.uid;
+
+
+
+                    const userSnap = await db.ref('users/' + uid).once('value');
+
+                    const user = userSnap.val();
+
+
+
+                    if (user?.banned) {
+
+                        await auth.signOut();
+
+                        showAuthError('Your account has been banned.');
+
+                        setAuthLoading(false);
+
+                        return;
+
+                    }
+
+
+
+                    await db.ref('users/' + uid + '/activeDevice').set(deviceId);
+
+                    if (!user) await createUserProfile(uid, email, null);
+
+                    setAuthLoading(false);
+
+                } catch (signInError) {
+
+                    if (signInError.code === 'auth/user-not-found') {
+
+                        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+
+                        let referrerId = null;
+
+                        if (inviteCode) {
+
+                            const snapshot = await db.ref('users').orderByChild('inviteCode').equalTo(inviteCode).once('value');
+
+                            if (snapshot.val()) referrerId = Object.keys(snapshot.val())[0];
+
+                        }
+
+                        await createUserProfile(userCredential.user.uid, email, referrerId);
+
+                        if (referrerId) {
+
+                            const referrerRef = db.ref('users/' + referrerId + '/referralCount');
+
+                            const currentCount = (await referrerRef.once('value')).val() || 0;
+
+                            await referrerRef.set(currentCount + 1);
+
+                        }
+
+                        setAuthLoading(false);
+
+                    } else if (signInError.code === 'auth/wrong-password' || signInError.code === 'auth/invalid-credential') {
+
+                        showAuthError('Incorrect password');
+
+                        setAuthLoading(false);
+
+                    } else {
+
+                        showAuthError(signInError.message);
+
+                        setAuthLoading(false);
+
+                    }
+
+                }
+
+            } catch (error) {
+
+                showAuthError(error.message);
+
+                setAuthLoading(false);
+
+            }
+
+        }
+
+
+
+        async function createUserProfile(uid, email, referrerId) {
+
+            await db.ref('users/' + uid).set({
+
+                email, balance: 0, totalDeposit: 0, totalWithdraw: 0, totalTurnover: 0,
+
+                totalWin: 0, totalLoss: 0, vipLevel: 1, inviteCode: generateInviteCode(uid),
+
+                referredBy: referrerId, totalCommission: 0, referralCount: 0, banned: false,
+
+                activeDevice: deviceId, lastRewardClaim: 0, lastMonthlyClaim: 0,
+
+                diceWin: 0, diceLoss: 0, slotWin: 0, slotLoss: 0, createdAt: Date.now()
+
+            });
+
+        }
+
+
+
+        function setAuthLoading(loading) {
+
+            isAuthLoading = loading;
+
+            const authBtn = document.getElementById('authBtn');
+
+            authBtn.disabled = loading;
+
+            authBtn.textContent = loading ? 'Loading...' : 'Login / Register';
+
+            authBtn.classList.toggle('opacity-50', loading);
+
+        }
+
+
+
+        function showAuthError(message) {
+
+            const errorEl = document.getElementById('authError');
+
+            errorEl.textContent = message;
+
+            errorEl.classList.remove('hidden');
+
+        }
+
+
+
+        function resetPassword() {
+
+            const email = document.getElementById('email').value.trim();
+
+            if (!email) { alert('Enter email first'); return; }
+
+            auth.sendPasswordResetEmail(email).then(() => alert('Reset email sent!')).catch(err => alert(err.message));
+
+        }
+
+
+
+        function logout() { auth.signOut(); }
+
+
+
+        auth.onAuthStateChanged(async (user) => {
+
+            setAuthLoading(false);
+
+            if (user) {
+
+                currentUser = user;
+
+                await syncServerTime();
+
+                document.getElementById('auth-page').classList.add('hidden');
+
+                document.getElementById('main-page').classList.remove('hidden');
+
+                if (user.email === ADMIN_EMAIL) document.getElementById('adminLink').classList.remove('hidden');
+
+                loadUserData();
+
+                loadPaymentSettings();
+
+                loadNotifications();
+
+                loadGameSettings();
+
+                loadServerTime();
+
+                trackPlayerPresence();
+
+                listenForGlobalNotice();
+
+            } else {
+
+                currentUser = null;
+
+                userData = null;
+
+                document.getElementById('auth-page').classList.remove('hidden');
+
+                document.getElementById('main-page').classList.add('hidden');
+
+                document.getElementById('adminLink').classList.add('hidden');
+
+            }
+
+        });
+
+
+
+        function loadUserData() {
+
+            db.ref('users/' + currentUser.uid).on('value', (snapshot) => {
+
+                userData = snapshot.val();
+
+                if (userData) {
+
+                    updateUI();
+
+                    updateGameBalances();
+
+                } else {
+
+                    createUserProfile(currentUser.uid, currentUser.email, null);
+
+                }
+
+            });
+
+        }
+
+
+
+        function updateGameBalances() {
+
+            const bal = formatNumber(userData?.balance || 0);
+
+            document.getElementById('userBalance').textContent = bal;
+
+            const gameBalEl = document.getElementById('gameBalance');
+
+            const slotBalEl = document.getElementById('slotBalance');
+
+            if (gameBalEl) gameBalEl.textContent = bal;
+
+            if (slotBalEl) slotBalEl.textContent = bal;
+
+        }
+
+
+
+        function loadPaymentSettings() {
+
+            db.ref('settings/payment').on('value', (snapshot) => {
+
+                if (snapshot.val()) { paymentSettings = snapshot.val(); updatePaymentDisplay(); }
+
+            });
+
+        }
+
+
+
+        function loadGameSettings() {
+
+            db.ref('settings/games').on('value', (snapshot) => {
+
+                if (snapshot.val()) {
+
+                    globalSlotWinRate = snapshot.val().slotWinRate || 20;
+
+                    if (document.getElementById('slotWinRate')) {
+
+                        document.getElementById('slotWinRate').value = globalSlotWinRate;
+
+                        document.getElementById('winRateDisplay').textContent = globalSlotWinRate + '%';
+
+                    }
+
+                }
+
+            });
+
+            db.ref('settings/forcedDice').on('value', (snapshot) => {
+
+                forcedDiceResult = snapshot.val();
+
+                if (document.getElementById('forcedResultDisplay')) {
+
+                    document.getElementById('forcedResultDisplay').textContent = 
+
+                        forcedDiceResult ? `Current: ${forcedDiceResult}` : 'Current: None';
+
+                }
+
+            });
+
+            db.ref('settings/adLink').on('value', (snapshot) => {
+
+                if (snapshot.val()) document.getElementById('ads').innerHTML = snapshot.val();
+
+            });
+
+        }
+
+
+
+        function loadServerTime() {
+
+            db.ref('gameState/dice').on('value', (snapshot) => {
+
+                const state = snapshot.val();
+
+                if (state) {
+
+                    roundEndTime = state.roundEndTime || 0;
+
+                    currentEventNumber = state.eventNumber || 0;
+
+                    timerMode = state.timerMode || 30;
+
+                    updateTimerModeButtons();
+
+                }
+
+            });
+
+        }
+
+
+
+        function trackPlayerPresence() {
+
+            const presenceRef = db.ref('presence/' + currentUser.uid);
+
+            presenceRef.onDisconnect().remove();
+
+            presenceRef.set({ online: true, game: null, email: currentUser.email, timestamp: firebase.database.ServerValue.TIMESTAMP });
+
+        }
+
+
+
+        function setPlayerGame(game) {
+
+            if (currentUser) db.ref('presence/' + currentUser.uid + '/game').set(game);
+
+        }
+
+
+
+        function listenForGlobalNotice() {
+
+            db.ref('globalNotice').on('value', (snapshot) => {
+
+                const notice = snapshot.val();
+
+                if (notice && notice.timestamp > Date.now() - 60000) {
+
+                    showGlobalNotice(notice.message);
+
+                }
+
+            });
+
+        }
+
+
+
+        function showGlobalNotice(message) {
+
+            const container = document.getElementById('global-notice-container');
+
+            container.innerHTML = `
+
+                <div class="global-notice">
+
+                    <h3 class="text-xl font-bold text-yellow-400 mb-4">📢 Notice</h3>
+
+                    <p class="text-gray-200 mb-4">${message}</p>
+
+                    <button onclick="closeGlobalNotice()" class="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-2 rounded-lg font-bold">OK</button>
+
+                </div>
+
+            `;
+
+        }
+
+
+
+        function closeGlobalNotice() { document.getElementById('global-notice-container').innerHTML = ''; }
+
+
+
+        function loadNotifications() {
+
+            db.ref('notifications/' + currentUser.uid).orderByChild('read').equalTo(false).on('value', (snapshot) => {
+
+                const notifs = snapshot.val();
+
+                const count = notifs ? Object.keys(notifs).length : 0;
+
+                const badge = document.getElementById('notifBadge');
+
+                if (count > 0) { badge.classList.remove('hidden'); badge.textContent = count; }
+
+                else badge.classList.add('hidden');
+
+            });
+
+        }
+
+
+
+        function updatePaymentDisplay() {
+
+            const phone = selectedDepositMethod === 'KBZPay' ? paymentSettings.kbzPhone : paymentSettings.wavePhone;
+
+            const name = selectedDepositMethod === 'KBZPay' ? paymentSettings.kbzName : paymentSettings.waveName;
+
+            document.getElementById('depositPayPhone').textContent = phone || 'Not set';
+
+            document.getElementById('depositPayName').textContent = name || 'Not set';
+
+        }
+
+
+
+        function updateUI() {
+
+            document.getElementById('userBalance').textContent = formatNumber(userData.balance || 0);
+
+            document.getElementById('userId').textContent = 'ID: ' + userData.inviteCode;
+
+            document.getElementById('userMail').textContent = currentUser.email;
+
+            updateVipBadge(calculateVipLevel(userData.totalTurnover || 0));
+
+            document.getElementById('myInviteCode').textContent = userData.inviteCode;
+
+            document.getElementById('totalCommission').textContent = formatNumber(userData.totalCommission || 0);
+
+            document.getElementById('totalReferrals').textContent = userData.referralCount || 0;
+
+        }
+
+
+
+        function calculateVipLevel(turnover) {
+
+            for (let i = VIP_LEVELS.length - 1; i >= 0; i--) {
+
+                if (turnover >= VIP_LEVELS[i].turnover) return VIP_LEVELS[i].level;
+
+            }
+
+            return 1;
+
+        }
+
+
+
+        function updateVipBadge(level) {
+
+            const badge = document.getElementById('vipBadge');
+
+            badge.className = `mt-2 vip-lv${level} px-3 py-1 inline-block rounded text-xs font-bold`;
+
+            badge.textContent = `VIP LV ${level}`;
+
+
+
+            if (document.getElementById('currentVipBadge')) {
+
+                const modalBadge = document.getElementById('currentVipBadge');
+
+                modalBadge.className = `vip-lv${level} px-4 py-2 inline-block rounded-lg text-lg font-bold mb-2`;
+
+                modalBadge.textContent = `VIP LV ${level}`;
+
+                document.getElementById('totalTurnover').textContent = formatNumber(userData.totalTurnover || 0);
+
+
+
+                const currentTurnover = userData.totalTurnover || 0;
+
+                const nextLevel = VIP_LEVELS.find(v => v.turnover > currentTurnover) || VIP_LEVELS[VIP_LEVELS.length - 1];
+
+                const prevLevel = VIP_LEVELS.find(v => v.level === level) || VIP_LEVELS[0];
+
+                const progress = Math.min(100, ((currentTurnover - prevLevel.turnover) / (nextLevel.turnover - prevLevel.turnover)) * 100);
+
+                document.getElementById('vipProgress').style.width = Math.max(0, progress) + '%';
+
+                document.getElementById('vipProgressText').textContent = `${formatNumber(currentTurnover)} / ${formatNumber(nextLevel.turnover)}`;
+
+            }
+
+        }
+
+
+
+        async function claimVipReward() {
+
+            const level = calculateVipLevel(userData.totalTurnover || 0);
+
+            const vipData = VIP_LEVELS.find(v => v.level === level);
+
+            if (!vipData) { showToast('No reward available', 'error'); return; }
+
+            const currentLevel = userData.claimedRewardLevel || 0;
+
+            if (currentLevel >= level) { showToast('Already claimed for this level', 'error'); return; }
+
+            const reward = vipData.reward;
+
+            await db.ref('users/' + currentUser.uid).update({ balance: (userData.balance || 0) + reward, claimedRewardLevel: level, lastRewardClaim: Date.now() });
+
+            showToast(`Claimed ${formatNumber(reward)} reward!`);
+
+        }
+
+
+
+        async function claimMonthlySalary() {
+
+            const level = calculateVipLevel(userData.totalTurnover || 0);
+
+            const vipData = VIP_LEVELS.find(v => v.level === level);
+
+            if (!vipData) { showToast('No salary available', 'error'); return; }
+
+            const lastClaim = userData.lastMonthlyClaim || 0;
+
+            const oneMonth = 30 * 24 * 60 * 60 * 1000;
+
+            if (Date.now() - lastClaim < oneMonth) {
+
+                const daysLeft = Math.ceil((oneMonth - (Date.now() - lastClaim)) / (24 * 60 * 60 * 1000));
+
+                showToast(`Wait ${daysLeft} days`, 'error');
+
+                return;
+
+            }
+
+            const salary = vipData.monthly;
+
+            await db.ref('users/' + currentUser.uid).update({ balance: (userData.balance || 0) + salary, lastMonthlyClaim: Date.now() });
+
+            showToast(`Claimed ${formatNumber(salary)} monthly salary!`);
+
+        }
+
+
+
+        function copyInviteCode() {
+
+            const inviteLink = window.location.href.split('?')[0] + '?invite=' + userData.inviteCode;
+
+            navigator.clipboard.writeText(inviteLink).then(() => showToast('Copied!'));
+
+        }
+
+
+
+        function openModal(modalId) {
+
+            document.getElementById(modalId).classList.add('active');
+
+            if (modalId === 'historyModal') loadHistory();
+
+            if (modalId === 'analyticsModal') loadAnalytics();
+
+            if (modalId === 'financeModal') loadFinanceHistory();
+
+            if (modalId === 'notificationModal') loadNotificationList();
+
+        }
+
+
+
+        function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
+
+
+
+        function openSpecialGameModal() {
+
+            const bet = parseInt(document.getElementById('slotBetAmount').value);
+
+            document.getElementById('specialBetDisplay').textContent = formatNumber(bet);
+
+            document.getElementById('specialCostDisplay').textContent = formatNumber(bet * 14);
+
+            openModal('specialGameModal');
+
+        }
+
+
+
+        function openAdminPanel() {
+
+            if (currentUser?.email !== ADMIN_EMAIL) { alert('Access denied'); return; }
+
+            openModal('adminModal');
+
+            loadAdminData();
+
+            loadPlayerCounts();
+
+            loadLiveBetFeed();
+
+            loadFinancialSummary();
+
+        }
+
+
+
+        function loadPlayerCounts() {
+
+            db.ref('presence').on('value', (snapshot) => {
+
+                const players = snapshot.val() || {};
+
+                let diceCount = 0, slotCount = 0, total = 0;
+
+                Object.values(players).forEach(p => {
+
+                    if (p.online) total++;
+
+                    if (p.game === 'dice') diceCount++;
+
+                    if (p.game === 'slot') slotCount++;
+
+                });
+
+                document.getElementById('totalOnline').textContent = total;
+
+                document.getElementById('dicePlayersOnline').textContent = diceCount;
+
+                document.getElementById('slotPlayersOnline').textContent = slotCount;
+
+            });
+
+        }
+
+
+
+        function loadLiveBetFeed() {
+
+            db.ref('liveBets').orderByChild('timestamp').limitToLast(20).on('value', (snapshot) => {
+
+                const bets = snapshot.val();
+
+                const container = document.getElementById('liveBetFeed');
+
+                if (!bets) { container.innerHTML = '<p class="text-gray-400">No bets yet</p>'; return; }
+
+                let html = '';
+
+                Object.values(bets).reverse().forEach(bet => {
+
+                    html += `<div class="live-feed-item"><span class="text-gray-400">${bet.email?.split('@')[0] || 'User'}</span> | <span class="text-purple-400">${bet.game}</span> | <span class="text-yellow-400">${formatNumber(bet.amount)}</span> on <span class="text-blue-400">${bet.choice}</span></div>`;
+
+                });
+
+                container.innerHTML = html;
+
+            });
+
+        }
+
+
+
+        function loadFinancialSummary() {
+
+            const today = new Date().setHours(0, 0, 0, 0);
+
+            db.ref('transactions').orderByChild('timestamp').startAt(today).once('value', (snapshot) => {
+
+                const txs = snapshot.val() || {};
+
+                let deposits = 0, withdrawals = 0;
+
+                Object.values(txs).forEach(tx => {
+
+                    if (tx.type === 'deposit') deposits += tx.amount;
+
+                    if (tx.type === 'withdraw') withdrawals += tx.amount;
+
+                });
+
+                document.getElementById('todayDeposits').textContent = formatNumber(deposits);
+
+                document.getElementById('todayWithdrawals').textContent = formatNumber(withdrawals);
+
+                document.getElementById('todayPL').textContent = formatNumber(deposits - withdrawals);
+
+            });
+
+        }
+
+
+
+        function loadAnalytics() {
+
+            if (!userData) return;
+
+            document.getElementById('totalProfit').textContent = formatNumber(userData.totalWin || 0);
+
+            document.getElementById('totalLoss').textContent = formatNumber(userData.totalLoss || 0);
+
+            document.getElementById('diceWin').textContent = formatNumber(userData.diceWin || 0);
+
+            document.getElementById('diceLoss').textContent = formatNumber(userData.diceLoss || 0);
+
+            document.getElementById('slotWin').textContent = formatNumber(userData.slotWin || 0);
+
+            document.getElementById('slotLoss').textContent = formatNumber(userData.slotLoss || 0);
+
+        }
+
+
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+
+
+
+        function setTimerMode(seconds) {
+
+            if (currentUser?.email !== ADMIN_EMAIL) { showToast('Admin only', 'error'); return; }
+
+            db.ref('gameState/dice/timerMode').set(seconds);
+
+            showToast('Timer set to ' + seconds + 's');
+
+        }
+
+
+
+        function updateTimerModeButtons() {
+
+            document.getElementById('timer30').classList.toggle('active', timerMode === 30);
+
+            document.getElementById('timer60').classList.toggle('active', timerMode === 60);
+
+            document.getElementById('timer180').classList.toggle('active', timerMode === 180);
+
+        }
+
+
+
+        function openBigSmall() {
+
+            document.getElementById('game-ui').classList.remove('hidden');
+
+            setPlayerGame('dice');
+
+            startDiceGame();
+
+            loadEventHistory();
+
+            loadMyBetsToday();
+
+            initTradingChart();
+
+            updateGameBalances();
+
+        }
+
+
+
+        function closeGame() {
+
+            document.getElementById('game-ui').classList.add('hidden');
+
+            setPlayerGame(null);
+
+            if (diceTimerInterval) clearInterval(diceTimerInterval);
+
+        }
+
+
+
+        function initTradingChart() {
+
+            const ctx = document.getElementById('tradingChart').getContext('2d');
+
+            if (tradingChart) tradingChart.destroy();
+
+
+
+            tradingChart = new Chart(ctx, {
+
+                type: 'line',
+
+                data: { labels: [], datasets: [{ label: 'Results', data: [], borderColor: '#fbbf24', backgroundColor: 'rgba(251, 191, 36, 0.1)', borderWidth: 3, fill: true, tension: 0.4, pointBackgroundColor: '#fbbf24', pointRadius: 6, pointHoverRadius: 8 }] },
+
+                options: {
+
+                    responsive: true, maintainAspectRatio: false,
+
+                    plugins: { legend: { display: false } },
+
+                    scales: {
+
+                        y: { min: 0.5, max: 6.5, ticks: { stepSize: 1, color: '#9ca3af', font: { weight: 'bold' } }, grid: { color: 'rgba(255,255,255,0.1)' } },
+
+                        x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+
+                    }
+
+                }
+
+            });
+
+            updateTradingChart();
+
+        }
+
+
+
+        function updateTradingChart() {
+
+            db.ref('diceHistory').orderByChild('timestamp').limitToLast(10).once('value', (snapshot) => {
+
+                const history = snapshot.val();
+
+                if (!history || !tradingChart) return;
+
+                const entries = Object.values(history);
+
+                const data = entries.map(h => h.result);
+
+                const labels = entries.map((h, i) => '#' + h.eventNumber);
+
+                tradingChart.data.labels = labels;
+
+                tradingChart.data.datasets[0].data = data;
+
+                tradingChart.update();
+
+            });
+
+        }
+
+
+
+        function startDiceGame() {
+
+            if (diceTimerInterval) clearInterval(diceTimerInterval);
+
+
+
+            db.ref('gameState/dice').once('value').then((snapshot) => {
+
+                const state = snapshot.val();
+
+                const now = getServerTime();
+
+                const mode = state?.timerMode || 30;
+
+                if (!state || now > state.roundEndTime) {
+
+                    const newEndTime = now + (mode * 1000);
+
+                    const newEventNumber = (state?.eventNumber || 0) + 1;
+
+                    db.ref('gameState/dice').set({ roundEndTime: newEndTime, eventNumber: newEventNumber, status: 'betting', timerMode: mode });
+
+                }
+
+            });
+
+
+
+            let lastDingSecond = -1;
+
+            diceTimerInterval = setInterval(() => {
+
+                const now = getServerTime();
+
+                const timeLeft = Math.max(0, Math.floor((roundEndTime - now) / 1000));
+
+                const mins = Math.floor(timeLeft / 60);
+
+                const secs = timeLeft % 60;
+
+                document.getElementById('timer').textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+                document.getElementById('currentEvent').textContent = currentEventNumber;
+
+
+
+                const diceImg = document.getElementById('diceImage');
+
+                if (timeLeft <= 5 && timeLeft > 0) {
+
+                    diceImg.classList.add('rolling');
+
+                    if (timeLeft !== lastDingSecond) { playSound('dingSound'); lastDingSecond = timeLeft; }
+
+                } else {
+
+                    diceImg.classList.remove('rolling');
+
+                }
+
+
+
+                if (timeLeft === 0) {
+
+                    diceImg.classList.remove('rolling');
+
+                    resolveDiceRound();
+
+                }
+
+            }, 100);
+
+        }
+
+
+
+        async function resolveDiceRound() {
+
+            if (diceTimerInterval) clearInterval(diceTimerInterval);
+
+
+
+            let diceNumber;
+
+            if (forcedDiceResult) {
+
+                diceNumber = forcedDiceResult;
+
+                await db.ref('settings/forcedDice').set(null);
+
+            } else {
+
+                diceNumber = Math.floor(Math.random() * 6) + 1;
+
+            }
+
+
+
+            document.getElementById('diceImage').src = DICE_IMAGES[diceNumber];
+
+            const result = diceNumber <= 3 ? 'Small' : 'Big';
+
+            document.getElementById('diceResult').textContent = `Result: ${diceNumber} (${result})`;
+
+
+
+            await db.ref('diceHistory').push({ eventNumber: currentEventNumber, result: diceNumber, size: result, timestamp: Date.now() });
+
+
+
+            if (currentBetChoice && currentBetAmount > 0) {
+
+                let won = false;
+
+                if (typeof currentBetChoice === 'number') { won = currentBetChoice === diceNumber; }
+
+                else { won = currentBetChoice === result; }
+
+
+
+                const betStatus = document.getElementById('betStatus');
+
+                if (won) {
+
+                    const multiplier = typeof currentBetChoice === 'number' ? 6 : 2;
+
+                    const winAmount = currentBetAmount * multiplier;
+
+                    await updateBalance(winAmount, 'win', currentBetAmount, 'dice');
+
+                    playSound('winSound');
+
+                    showResultScreen(true, winAmount);
+
+                    if (betStatus) { betStatus.className = 'win-tag ml-2'; betStatus.textContent = '+' + formatNumber(winAmount); }
+
+                } else {
+
+                    showResultScreen(false, currentBetAmount);
+
+                    if (betStatus) { betStatus.className = 'lose-tag ml-2'; betStatus.textContent = '-' + formatNumber(currentBetAmount); }
+
+                }
+
+
+
+                await db.ref('betHistory/' + currentUser.uid).push({ eventNumber: currentEventNumber, bet: currentBetChoice, amount: currentBetAmount, result: diceNumber, won: won, timestamp: Date.now() });
+
+                currentBetChoice = null;
+
+                currentBetAmount = 0;
+
+            }
+
+
+
+            updateTradingChart();
+
+            loadEventHistory();
+
+            loadMyBetsToday();
+
+
+
+            setTimeout(() => {
+
+                document.getElementById('diceImage').src = DICE_IMAGES[5];
+
+                document.getElementById('diceResult').textContent = '';
+
+                document.getElementById('currentBetDisplay').classList.add('hidden');
+
+                const mode = timerMode || 30;
+
+                const newEndTime = getServerTime() + (mode * 1000);
+
+                const newEventNumber = currentEventNumber + 1;
+
+                db.ref('gameState/dice').set({ roundEndTime: newEndTime, eventNumber: newEventNumber, status: 'betting', timerMode: mode });
+
+                startDiceGame();
+
+            }, 5000);
+
+        }
+
+
+
+        function showResultScreen(won, amount) {
+
+            const screen = document.getElementById('resultScreen');
+
+            screen.classList.remove('hidden');
+
+            screen.className = `result-screen ${won ? 'win-screen' : 'lose-screen'}`;
+
+            document.getElementById('resultIcon').textContent = won ? '🎉' : '😔';
+
+            document.getElementById('resultTitle').textContent = won ? 'YOU WON!' : 'YOU LOST';
+
+            document.getElementById('resultTitle').className = won ? 'gold-text' : 'silver-text';
+
+            document.getElementById('resultAmount').innerHTML = `<span class="${won ? 'gold-text' : 'silver-text'}">${won ? '+' : '-'}${formatNumber(amount)}</span>`;
+
+        }
+
+
+
+        function closeResultScreen() { document.getElementById('resultScreen').classList.add('hidden'); }
+
+
+
+        function openBetModal(choice) {
+
+            const timeLeft = Math.max(0, Math.floor((roundEndTime - getServerTime()) / 1000));
+
+            if (timeLeft < 6) { showToast('Betting closed!', 'error'); return; }
+
+            pendingBet = choice;
+
+            document.getElementById('betChoice').textContent = typeof choice === 'number' ? `Number ${choice}` : choice;
+
+            document.getElementById('customBetAmount').value = '';
+
+            document.getElementById('totalBetAmount').textContent = '0';
+
+            document.getElementById('betModal').classList.add('active');
+
+        }
+
+
+
+        function closeBetModal() { document.getElementById('betModal').classList.remove('active'); }
+
+
+
+        function setQuickBet(amount) {
+
+            document.getElementById('customBetAmount').value = amount;
+
+            document.getElementById('totalBetAmount').textContent = formatNumber(amount);
+
+        }
+
+
+
+        function setMultiplier(mult) {
+
+            const current = parseFloat(document.getElementById('customBetAmount').value) || 0;
+
+            const newAmount = current * mult;
+
+            document.getElementById('customBetAmount').value = newAmount;
+
+            document.getElementById('totalBetAmount').textContent = formatNumber(newAmount);
+
+        }
+
+
+
+        async function confirmBet() {
+
+            const amount = parseFloat(document.getElementById('customBetAmount').value);
+
+            if (!amount || amount <= 0) { showToast('Enter amount', 'error'); return; }
+
+            if (amount > userData.balance) { showToast('Insufficient balance', 'error'); playSound('errorSound'); return; }
+
+            if (amount > 10000) {
+
+                pendingBetAmount = amount;
+
+                document.getElementById('highBetAmount').textContent = formatNumber(amount);
+
+                document.getElementById('highBetModal').classList.add('active');
+
+                return;
+
+            }
+
+            await placeBet(amount);
+
+        }
+
+
+
+        function cancelHighBet() { document.getElementById('highBetModal').classList.remove('active'); pendingBetAmount = 0; }
+
+
+
+        async function confirmHighBet() {
+
+            document.getElementById('highBetModal').classList.remove('active');
+
+            await placeBet(pendingBetAmount);
+
+            pendingBetAmount = 0;
+
+        }
+
+
+
+        async function placeBet(amount) {
+
+            await updateBalance(-amount, 'bet', amount, 'dice');
+
+            currentBetChoice = pendingBet;
+
+            currentBetAmount = amount;
+
+            document.getElementById('currentBetDisplay').classList.remove('hidden');
+
+            document.getElementById('currentBetInfo').textContent = `${typeof pendingBet === 'number' ? '#' + pendingBet : pendingBet} - ${formatNumber(amount)}`;
+
+            document.getElementById('betStatus').className = 'pending-tag ml-2';
+
+            document.getElementById('betStatus').textContent = 'PENDING';
+
+            await db.ref('liveBets').push({ email: currentUser.email, game: 'Dice', amount: amount, choice: typeof pendingBet === 'number' ? '#' + pendingBet : pendingBet, timestamp: Date.now() });
+
+            closeBetModal();
+
+            showToast('Bet placed!');
+
+        }
+
+
+
+        function loadEventHistory() {
+
+            db.ref('diceHistory').orderByChild('timestamp').limitToLast(100).on('value', (snapshot) => {
+
+                allDiceHistory = [];
+
+                const history = snapshot.val();
+
+                if (history) allDiceHistory = Object.values(history).reverse();
+
+                renderEventHistoryPage();
+
+            });
+
+        }
+
+
+
+        function renderEventHistoryPage() {
+
+            const container = document.getElementById('eventHistory');
+
+            const perPage = 10;
+
+            const start = (eventHistoryPage - 1) * perPage;
+
+            const pageData = allDiceHistory.slice(start, start + perPage);
+
+            if (!pageData.length) { container.innerHTML = '<p class="text-gray-400">No history</p>'; return; }
+
+            let html = '';
+
+            pageData.forEach(h => {
+
+                const color = h.result <= 3 ? 'bg-red-600' : 'bg-blue-600';
+
+                html += `<div class="flex justify-between items-center p-2 rounded bg-black/30"><span class="text-gray-400">#${h.eventNumber}</span><span class="${color} px-3 py-1 rounded font-bold">${h.result}</span><span class="${h.result <= 3 ? 'text-red-400' : 'text-blue-400'}">${h.size}</span></div>`;
+
+            });
+
+            container.innerHTML = html;
+
+            const totalPages = Math.ceil(allDiceHistory.length / perPage);
+
+            const paginationEl = document.getElementById('eventPagination');
+
+            let pagHtml = '';
+
+            for (let i = 1; i <= Math.min(totalPages, 10); i++) {
+
+                pagHtml += `<button onclick="setEventPage(${i})" class="px-2 py-1 rounded text-xs ${i === eventHistoryPage ? 'bg-yellow-500 text-black font-bold' : 'bg-gray-600'}">${i}</button>`;
+
+            }
+
+            paginationEl.innerHTML = pagHtml;
+
+        }
+
+
+
+        function setEventPage(page) { eventHistoryPage = page; renderEventHistoryPage(); }
+
+
+
+        function loadMyBetsToday() {
+
+            const sixHoursAgo = Date.now() - (6 * 60 * 60 * 1000);
+
+            db.ref('betHistory/' + currentUser.uid).orderByChild('timestamp').startAt(sixHoursAgo).on('value', (snapshot) => {
+
+                const bets = snapshot.val();
+
+                const container = document.getElementById('myBetsHistory');
+
+                if (!bets) { container.innerHTML = '<p class="text-gray-400">No bets</p>'; return; }
+
+                let html = '';
+
+                Object.values(bets).reverse().slice(0, 30).forEach(b => {
+
+                    const tag = b.won ? `<span class="win-tag">+${formatNumber(b.amount * (typeof b.bet === 'number' ? 6 : 2))}</span>` : `<span class="lose-tag">-${formatNumber(b.amount)}</span>`;
+
+                    html += `<div class="flex justify-between items-center p-2 rounded bg-black/30"><span class="text-gray-400">#${b.eventNumber}</span><span>${typeof b.bet === 'number' ? '#' + b.bet : b.bet}</span>${tag}</div>`;
+
+                });
+
+                container.innerHTML = html;
+
+            });
+
+        }
+
+
+
+        function switchDiceTab(tab) {
+
+            document.getElementById('eventsTab').classList.toggle('active', tab === 'events');
+
+            document.getElementById('myBetsTab').classList.toggle('active', tab === 'myBets');
+
+            document.getElementById('eventsContent').classList.toggle('hidden', tab !== 'events');
+
+            document.getElementById('myBetsContent').classList.toggle('hidden', tab !== 'myBets');
+
+        }
+
+
+
+        function openSlotGame() {
+
+            document.getElementById('slot-ui').classList.remove('hidden');
+
+            setPlayerGame('slot');
+
+            updateGameBalances();
+
+        }
+
+
+
+        function closeSlotGame() {
+
+            document.getElementById('slot-ui').classList.add('hidden');
+
+            setPlayerGame(null);
+
+            stopAutoSpin();
+
+            stopSound('spinSound');
+
+        }
+
+
+
+        function getSymbolHTML(key) {
+
+            const asset = SLOT_ASSETS[key];
+
+            if (!asset) return '<span class="text-3xl">❓</span>';
+
+            if (asset.type === 'emoji') return `<span class="text-3xl">${asset.value}</span>`;
+
+            return `<img src="${asset.src}" alt="${key}" class="${asset.effect || ''}">`;
+
+        }
+
+
+
+        function getRandomSymbol(specialRate = 3) {
+
+            const rand = Math.random() * 100;
+
+            if (rand < specialRate) {
+
+                const specials = ['ice', 'fire', 'sword'];
+
+                return specials[Math.floor(Math.random() * specials.length)];
+
+            }
+
+            return String(Math.floor(Math.random() * 9) + 1);
+
+        }
+
+
+
+        async function buySpecialGame() {
+
+            closeModal('specialGameModal');
+
+            const betAmt = parseInt(document.getElementById('slotBetAmount').value);
+
+            const cost = betAmt * 14;
+
+            if (cost > userData.balance) { showToast('Insufficient balance for special game', 'error'); playSound('errorSound'); return; }
+
+            await updateBalance(-cost, 'special_game', cost, 'slot');
+
+            specialGameActive = true;
+
+            freeSpins = 10;
+
+            document.getElementById('freeSpins').textContent = freeSpins;
+
+            document.getElementById('slotGrid').classList.add('scatter-active');
+
+            playSound('drumSound');
+
+            setTimeout(() => stopSound('drumSound'), 5000);
+
+            showToast('Special Game activated! 10 Free Spins with bonus!');
+
+            spinSlot();
+
+        }
+
+
+
+        async function spinSlot() {
+
+            if (slotSpinning) return;
+
+            const betAmt = freeSpins > 0 ? 0 : parseInt(document.getElementById('slotBetAmount').value);
+
+            if (freeSpins === 0 && betAmt > userData.balance) { showToast('Insufficient balance', 'error'); playSound('errorSound'); return; }
+
+
+
+            if (freeSpins === 0) {
+
+                await updateBalance(-betAmt, 'bet', betAmt, 'slot');
+
+                await db.ref('liveBets').push({ email: currentUser.email, game: 'Slot', amount: betAmt, choice: 'Spin', timestamp: Date.now() });
+
+            } else {
+
+                freeSpins--;
+
+                document.getElementById('freeSpins').textContent = freeSpins;
+
+            }
+
+
+
+            slotSpinning = true;
+
+            document.getElementById('spinBtn').disabled = true;
+
+            document.getElementById('slotResult').textContent = '';
+
+            document.getElementById('slotGrid').classList.add('slot-spinning');
+
+            playSound('spinSound', true);
+
+
+
+            const bonusChance = specialGameActive ? 2 : 0;
+
+            const rand = Math.random() * 100;
+
+            let winType;
+
+            if (rand < (80 - bonusChance)) winType = 'lose';
+
+            else if (rand < (97.3 - bonusChance)) winType = 'normal';
+
+            else if (rand < (99.3 - bonusChance)) winType = 'multi';
+
+            else winType = 'scatter';
+
+
+
+            const results = [];
+
+            for (let i = 0; i < 15; i++) results.push(getRandomSymbol());
+
+
+
+            if (winType === 'normal') {
+
+                const winSymbol = String(Math.floor(Math.random() * 9) + 1);
+
+                [5, 6, 7].forEach(p => results[p] = winSymbol);
+
+            } else if (winType === 'multi') {
+
+                const winSymbol = ['ice', 'fire', 'sword'][Math.floor(Math.random() * 3)];
+
+                [0, 1, 2, 3, 4].forEach(p => results[p] = winSymbol);
+
+            } else if (winType === 'scatter') {
+
+                const scatterPositions = [0, 4, 7, 10, 14].slice(0, 3 + Math.floor(Math.random() * 3));
+
+                scatterPositions.forEach(p => results[p] = 'yingyang');
+
+            }
+
+
+
+            const scatterCount = results.filter(s => s === 'yingyang').length;
+
+            if (scatterCount >= 3) {
+
+                const spinsToAdd = scatterCount === 3 ? 8 : scatterCount === 4 ? 9 : 10;
+
+                freeSpins += spinsToAdd;
+
+            }
+
+
+
+            setTimeout(() => {
+
+                stopSound('spinSound');
+
+                document.getElementById('slotGrid').classList.remove('slot-spinning');
+
+                const cells = document.querySelectorAll('.slot-cell');
+
+                cells.forEach((cell, i) => {
+
+                    cell.innerHTML = getSymbolHTML(results[i]);
+
+                    cell.classList.remove('slot-win', 'ice-glow', 'fire-glow', 'sword-glow');
+
+                });
+
+
+
+                document.getElementById('freeSpins').textContent = freeSpins;
+
+                if (freeSpins === 0 && specialGameActive) {
+
+                    specialGameActive = false;
+
+                    document.getElementById('slotGrid').classList.remove('scatter-active');
+
+                }
+
+
+
+                let winAmount = 0;
+
+                const actualBet = betAmt || parseInt(document.getElementById('slotBetAmount').value);
+
+
+
+                if (winType === 'multi') {
+
+                    const symbol = results[0];
+
+                    const asset = SLOT_ASSETS[symbol];
+
+                    winAmount = actualBet * asset.payout5;
+
+                    [0,1,2,3,4].forEach(i => { cells[i].classList.add('slot-win'); if (asset.effect) cells[i].classList.add(asset.effect); });
+
+                } else if (winType === 'normal') {
+
+                    const symbol = results[5];
+
+                    const asset = SLOT_ASSETS[symbol];
+
+                    winAmount = actualBet * asset.payout3;
+
+                    [5,6,7].forEach(i => cells[i].classList.add('slot-win'));
+
+                }
+
+
+
+                if (scatterCount >= 3) document.getElementById('slotResult').textContent = `☯️ +${scatterCount === 3 ? 8 : scatterCount === 4 ? 9 : 10} FREE SPINS!`;
+
+
+
+                if (winAmount > 0) {
+
+                    updateBalance(winAmount, 'win', 0, 'slot');
+
+                    document.getElementById('lastWin').textContent = formatNumber(winAmount);
+
+                    playSound('winSound');
+
+                    if (winAmount > actualBet * 5) showBigWin(winAmount, winAmount > actualBet * 20 ? 'MEGA' : winAmount > actualBet * 10 ? 'SUPER' : 'BIG');
+
+                    else document.getElementById('slotResult').textContent = `WIN: +${formatNumber(winAmount)}`;
+
+                } else if (scatterCount < 3) {
+
+                    document.getElementById('slotResult').textContent = 'No Win';
+
+                    document.getElementById('lastWin').textContent = '0';
+
+                }
+
+
+
+                slotSpinning = false;
+
+                document.getElementById('spinBtn').disabled = false;
+
+
+
+                if (autoSpinsLeft > 0) {
+
+                    autoSpinsLeft--;
+
+                    document.getElementById('autoSpinsLeft').textContent = autoSpinsLeft;
+
+                    if (autoSpinsLeft > 0 && userData.balance >= parseInt(document.getElementById('slotBetAmount').value)) setTimeout(spinSlot, 1500);
+
+                    else stopAutoSpin();
+
+                }
+
+            }, 2000);
+
+        }
+
+
+
+        function startAutoSpin(count) {
+
+            if (slotSpinning) return;
+
+            autoSpinsLeft = count;
+
+            document.getElementById('autoSpinsLeft').textContent = autoSpinsLeft;
+
+            spinSlot();
+
+        }
+
+
+
+        function stopAutoSpin() { autoSpinsLeft = 0; document.getElementById('autoSpinsLeft').textContent = '0'; }
+
+
+
+        function showBigWin(amount, type) {
+
+            document.getElementById('winType').textContent = `🎉 ${type} WIN! 🎉`;
+
+            const amountEl = document.getElementById('bigWinAmount');
+
+            amountEl.textContent = '+0';
+
+            document.getElementById('bigWinPopup').classList.remove('hidden');
+
+            let current = 0;
+
+            const step = amount / 30;
+
+            const interval = setInterval(() => {
+
+                current += step;
+
+                if (current >= amount) { current = amount; clearInterval(interval); }
+
+                amountEl.textContent = '+' + formatNumber(Math.floor(current));
+
+            }, 100);
+
+            setTimeout(closeBigWin, 5000);
+
+        }
+
+
+
+        function closeBigWin() { document.getElementById('bigWinPopup').classList.add('hidden'); }
+
+
+
+        async function updateBalance(amount, type, betAmt = 0, game = '') {
+
+            const newBalance = (userData.balance || 0) + amount;
+
+            if (newBalance < 0) { showToast('Insufficient balance', 'error'); return; }
+
+            const updates = { balance: newBalance };
+
+            if (betAmt > 0) {
+
+                updates.totalTurnover = (userData.totalTurnover || 0) + betAmt;
+
+                if (amount > 0) {
+
+                    updates.totalWin = (userData.totalWin || 0) + amount;
+
+                    if (game === 'dice') updates.diceWin = (userData.diceWin || 0) + amount;
+
+                    if (game === 'slot') updates.slotWin = (userData.slotWin || 0) + amount;
+
+                } else if (type === 'bet') {
+
+                    updates.totalLoss = (userData.totalLoss || 0) + betAmt;
+
+                    if (game === 'dice') updates.diceLoss = (userData.diceLoss || 0) + betAmt;
+
+                    if (game === 'slot') updates.slotLoss = (userData.slotLoss || 0) + betAmt;
+
+                }
+
+                updates.vipLevel = calculateVipLevel(updates.totalTurnover);
+
+            }
+
+            await db.ref('users/' + currentUser.uid).update(updates);
+
+            if (type && type !== 'bet') await db.ref('transactions').push({ userId: currentUser.uid, type: type, amount: Math.abs(amount), game: game, timestamp: Date.now() });
+
+        }
+
+
+
+        function switchFinanceTab(tab) {
+
+            document.getElementById('depositTab').classList.toggle('active', tab === 'deposit');
+
+            document.getElementById('withdrawTab').classList.toggle('active', tab === 'withdraw');
+
+            document.getElementById('depositContent').style.display = tab === 'deposit' ? 'block' : 'none';
+
+            document.getElementById('withdrawContent').style.display = tab === 'withdraw' ? 'block' : 'none';
+
+        }
+
+
+
+        function selectPayment(type, method) {
+
+            if (type === 'deposit') {
+
+                selectedDepositMethod = method;
+
+                document.getElementById('depositKBZ').className = `p-2 rounded text-sm ${method === 'KBZPay' ? 'bg-blue-600 border-2 border-blue-400' : 'bg-gray-700 border-2 border-gray-600'}`;
+
+                document.getElementById('depositWave').className = `p-2 rounded text-sm ${method === 'WavePay' ? 'bg-blue-600 border-2 border-blue-400' : 'bg-gray-700 border-2 border-gray-600'}`;
+
+                updatePaymentDisplay();
+
+            } else {
+
+                selectedWithdrawMethod = method;
+
+                document.getElementById('withdrawKBZ').className = `p-2 rounded text-sm ${method === 'KBZPay' ? 'bg-blue-600 border-2 border-blue-400' : 'bg-gray-700 border-2 border-gray-600'}`;
+
+                document.getElementById('withdrawWave').className = `p-2 rounded text-sm ${method === 'WavePay' ? 'bg-blue-600 border-2 border-blue-400' : 'bg-gray-700 border-2 border-gray-600'}`;
+
+            }
+
+        }
+
+
+
+        async function submitDeposit() {
+
+            const phone = document.getElementById('depositPhone').value.trim();
+
+            const accName = document.getElementById('depositAccName').value.trim();
+
+            const amount = parseFloat(document.getElementById('depositAmount').value);
+
+            const txId = document.getElementById('depositTxId').value.trim();
+
+            if (!phone || !accName || !amount || !txId) { showToast('Fill all fields', 'error'); return; }
+
+            if (txId.length !== 5) { showToast('Enter last 5 digits', 'error'); return; }
+
+            await db.ref('requests').push({ userId: currentUser.uid, email: currentUser.email, type: 'deposit', method: selectedDepositMethod, phone, accName, amount, txId, status: 'pending', timestamp: Date.now() });
+
+            ['depositPhone', 'depositAccName', 'depositAmount', 'depositTxId'].forEach(id => document.getElementById(id).value = '');
+
+            showToast('Deposit submitted!');
+
+            loadFinanceHistory();
+
+        }
+
+
+
+        async function submitWithdraw() {
+
+            const accNo = document.getElementById('withdrawAccNo').value.trim();
+
+            const accName = document.getElementById('withdrawAccName').value.trim();
+
+            const amount = parseFloat(document.getElementById('withdrawAmount').value);
+
+            if (!accNo || !accName || !amount) { showToast('Fill all fields', 'error'); return; }
+
+            if (amount > userData.balance) { showToast('Insufficient balance', 'error'); return; }
+
+            await db.ref('requests').push({ userId: currentUser.uid, email: currentUser.email, type: 'withdraw', method: selectedWithdrawMethod, accNo, accName, amount, status: 'pending', timestamp: Date.now() });
+
+            ['withdrawAccNo', 'withdrawAccName', 'withdrawAmount'].forEach(id => document.getElementById(id).value = '');
+
+            showToast('Withdraw submitted!');
+
+            loadFinanceHistory();
+
+        }
+
+
+
+        function loadFinanceHistory() {
+
+            db.ref('requests').orderByChild('userId').equalTo(currentUser.uid).once('value', (snapshot) => {
+
+                const listEl = document.getElementById('financeHistory');
+
+                const requests = snapshot.val();
+
+                if (!requests) { listEl.innerHTML = '<p class="text-gray-400">No requests</p>'; return; }
+
+                let html = '';
+
+                Object.values(requests).sort((a, b) => b.timestamp - a.timestamp).slice(0, 10).forEach(req => {
+
+                    const statusClass = req.status === 'pending' ? 'text-yellow-400' : req.status === 'approved' ? 'text-green-400' : 'text-red-400';
+
+                    html += `<div class="request-card"><div class="flex justify-between"><span>${req.type.toUpperCase()}</span><span class="${statusClass}">${req.status}</span></div><p>${formatNumber(req.amount)}</p></div>`;
+
+                });
+
+                listEl.innerHTML = html;
+
+            });
+
+        }
+
+
+
+        function loadNotificationList() {
+
+            db.ref('notifications/' + currentUser.uid).orderByChild('timestamp').once('value', (snapshot) => {
+
+                const listEl = document.getElementById('notificationList');
+
+                const notifs = snapshot.val();
+
+                if (!notifs) { listEl.innerHTML = '<p class="text-gray-400">No notifications</p>'; return; }
+
+                let html = '';
+
+                Object.entries(notifs).sort((a, b) => b[1].timestamp - a[1].timestamp).forEach(([key, notif]) => {
+
+                    html += `<div class="request-card ${notif.read ? 'opacity-50' : ''}">${notif.message}</div>`;
+
+                    if (!notif.read) db.ref('notifications/' + currentUser.uid + '/' + key).update({ read: true });
+
+                });
+
+                listEl.innerHTML = html;
+
+            });
+
+        }
+
+
+
+        function loadHistory() {
+
+            db.ref('transactions').orderByChild('userId').equalTo(currentUser.uid).once('value', (snapshot) => {
+
+                const historyEl = document.getElementById('historyList');
+
+                const transactions = snapshot.val();
+
+                if (!transactions) { historyEl.innerHTML = '<p class="text-gray-400">No transactions</p>'; return; }
+
+                let html = '';
+
+                Object.values(transactions).sort((a, b) => b.timestamp - a.timestamp).slice(0, 50).forEach(tx => {
+
+                    const color = ['deposit', 'win', 'commission', 'admin_add'].includes(tx.type) ? 'text-green-400' : 'text-red-400';
+
+                    const sign = ['deposit', 'win', 'commission', 'admin_add'].includes(tx.type) ? '+' : '-';
+
+                    html += `<div class="request-card ${color}">${sign}${formatNumber(tx.amount)} - ${tx.type}</div>`;
+
+                });
+
+                historyEl.innerHTML = html;
+
+            });
+
+        }
+
+
+
+        function switchAdminTab(tab) {
+
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('active'));
+
+            event.target.classList.add('active');
+
+            ['adminRequests', 'adminLiveFeed', 'adminTransfer', 'adminGames', 'adminUsers', 'adminSettings', 'adminNotice'].forEach(id => {
+
+                const el = document.getElementById(id);
+
+                if (el) el.classList.add('hidden');
+
+            });
+
+            const targetId = 'admin' + tab.charAt(0).toUpperCase() + tab.slice(1);
+
+            const targetEl = document.getElementById(targetId);
+
+            if (targetEl) targetEl.classList.remove('hidden');
+
+            if (tab === 'users') loadAdminUsers();
+
+            if (tab === 'settings') loadAdminSettings();
+
+        }
+
+
+
+        function loadAdminData() {
+
+            db.ref('requests').orderByChild('status').equalTo('pending').once('value', (snapshot) => {
+
+                const depositEl = document.getElementById('adminPendingDeposits');
+
+                const withdrawEl = document.getElementById('adminPendingWithdrawals');
+
+                const requests = snapshot.val();
+
+                if (!requests) { depositEl.innerHTML = '<p class="text-gray-400">None</p>'; withdrawEl.innerHTML = '<p class="text-gray-400">None</p>'; return; }
+
+                let depositHtml = '', withdrawHtml = '';
+
+                Object.entries(requests).forEach(([key, req]) => {
+
+                    const html = `<div class="request-card"><p class="font-bold">${req.email}</p><p>${formatNumber(req.amount)} (${req.method})</p><div class="flex gap-2 mt-2"><button onclick="adminApprove('${key}', '${req.type}', ${req.amount}, '${req.userId}')" class="bg-green-600 px-2 py-1 rounded text-xs">Approve</button><button onclick="adminReject('${key}', '${req.userId}')" class="bg-red-600 px-2 py-1 rounded text-xs">Reject</button></div></div>`;
+
+                    if (req.type === 'deposit') depositHtml += html;
+
+                    else withdrawHtml += html;
+
+                });
+
+                depositEl.innerHTML = depositHtml || '<p class="text-gray-400">None</p>';
+
+                withdrawEl.innerHTML = withdrawHtml || '<p class="text-gray-400">None</p>';
+
+            });
+
+        }
+
+
+
+        async function adminApprove(requestId, type, amount, userId) {
+
+            try {
+
+                const userSnapshot = await db.ref('users/' + userId).once('value');
+
+                const user = userSnapshot.val();
+
+                if (type === 'deposit') {
+
+                    const newBalance = (user.balance || 0) + amount;
+
+                    const newTotalDeposit = (user.totalDeposit || 0) + amount;
+
+                    await db.ref('users/' + userId).update({ balance: newBalance, totalDeposit: newTotalDeposit });
+
+                    await db.ref('transactions').push({ userId, type: 'deposit', amount, timestamp: Date.now() });
+
+                    if (user.referredBy) {
+
+                        const commission = amount * 0.10;
+
+                        const referrerSnapshot = await db.ref('users/' + user.referredBy).once('value');
+
+                        const referrer = referrerSnapshot.val();
+
+                        if (referrer) {
+
+                            await db.ref('users/' + user.referredBy).update({ balance: (referrer.balance || 0) + commission, totalCommission: (referrer.totalCommission || 0) + commission });
+
+                            await db.ref('transactions').push({ userId: user.referredBy, type: 'commission', amount: commission, timestamp: Date.now() });
+
+                        }
+
+                    }
+
+                } else {
+
+                    const newBalance = (user.balance || 0) - amount;
+
+                    if (newBalance < 0) { showToast('User has insufficient balance', 'error'); return; }
+
+                    const newTotalWithdraw = (user.totalWithdraw || 0) + amount;
+
+                    await db.ref('users/' + userId).update({ balance: newBalance, totalWithdraw: newTotalWithdraw });
+
+                    await db.ref('transactions').push({ userId, type: 'withdraw', amount, timestamp: Date.now() });
+
+                }
+
+                await db.ref('requests/' + requestId).update({ status: 'approved' });
+
+                await db.ref('notifications/' + userId).push({ message: `${type} of ${formatNumber(amount)} approved!`, read: false, timestamp: Date.now() });
+
+                showToast('Approved!');
+
+                loadAdminData();
+
+                loadFinancialSummary();
+
+            } catch (error) { showToast('Error: ' + error.message, 'error'); }
+
+        }
+
+
+
+        async function adminReject(requestId, userId) {
+
+            await db.ref('requests/' + requestId).update({ status: 'rejected' });
+
+            await db.ref('notifications/' + userId).push({ message: 'Your request was rejected.', read: false, timestamp: Date.now() });
+
+            showToast('Rejected');
+
+            loadAdminData();
+
+        }
+
+
+
+        async function manualTransfer() {
+
+            const userIdInput = document.getElementById('transferUserId').value.trim();
+
+            const amount = parseFloat(document.getElementById('transferAmount').value);
+
+            const reason = document.getElementById('transferReason').value.trim();
+
+            if (!userIdInput || !amount) { showToast('Enter User ID and amount', 'error'); return; }
+
+            const snapshot = await db.ref('users').orderByChild('inviteCode').equalTo(userIdInput).once('value');
+
+            if (!snapshot.val()) { showToast('User not found', 'error'); return; }
+
+            const userId = Object.keys(snapshot.val())[0];
+
+            const user = snapshot.val()[userId];
+
+            const newBalance = (user.balance || 0) + amount;
+
+            if (newBalance < 0) { showToast('Balance would be negative', 'error'); return; }
+
+            await db.ref('users/' + userId).update({ balance: newBalance });
+
+            await db.ref('transactions').push({ userId, type: amount > 0 ? 'admin_add' : 'admin_deduct', amount: Math.abs(amount), reason, timestamp: Date.now() });
+
+            await db.ref('notifications/' + userId).push({ message: `Admin ${amount > 0 ? 'added' : 'deducted'} ${formatNumber(Math.abs(amount))}. ${reason}`, read: false, timestamp: Date.now() });
+
+            ['transferUserId', 'transferAmount', 'transferReason'].forEach(id => document.getElementById(id).value = '');
+
+            showToast(`Transferred! New: ${formatNumber(newBalance)}`);
+
+        }
+
+
+
+        async function forceDiceResult(num) { await db.ref('settings/forcedDice').set(num); showToast(`Forced: ${num}`); }
+
+        async function clearForcedDice() { await db.ref('settings/forcedDice').set(null); showToast('Cleared'); }
+
+        function updateWinRateDisplay() { document.getElementById('winRateDisplay').textContent = document.getElementById('slotWinRate').value + '%'; }
+
+        async function saveSlotWinRate() { const rate = parseInt(document.getElementById('slotWinRate').value); await db.ref('settings/games/slotWinRate').set(rate); showToast('Saved: ' + rate + '%'); }
+
+
+
+        function loadAdminUsers() {
+
+            db.ref('users').once('value', (snapshot) => {
+
+                const listEl = document.getElementById('adminUserList');
+
+                const users = snapshot.val();
+
+                if (!users) { listEl.innerHTML = '<p class="text-gray-400">No users</p>'; return; }
+
+                let html = '';
+
+                Object.entries(users).forEach(([uid, user]) => {
+
+                    const netGame = (user.totalLoss || 0) - (user.totalWin || 0);
+
+                    const profitClass = netGame >= 0 ? 'profit-positive' : 'profit-negative';
+
+                    html += `<div class="request-card"><div class="flex justify-between items-start"><div><p class="font-bold">${user.email}</p><p class="text-xs text-gray-400">${user.inviteCode}</p><p class="text-xs">Bal: ${formatNumber(user.balance || 0)}</p><p class="text-xs ${profitClass}">Net P/L: ${formatNumber(netGame)}</p></div><button onclick="toggleBan('${uid}', ${user.banned || false})" class="${user.banned ? 'bg-green-600' : 'bg-red-600'} px-2 py-1 rounded text-xs">${user.banned ? 'Unban' : 'Ban'}</button></div></div>`;
+
+                });
+
+                listEl.innerHTML = html;
+
+            });
+
+        }
+
+
+
+        async function toggleBan(userId, currentlyBanned) { await db.ref('users/' + userId + '/banned').set(!currentlyBanned); showToast(currentlyBanned ? 'Unbanned' : 'Banned'); loadAdminUsers(); }
+
+
+
+        function loadAdminSettings() {
+
+            db.ref('settings/payment').once('value', (snapshot) => {
+
+                const data = snapshot.val() || {};
+
+                document.getElementById('settingsKBZPhone').value = data.kbzPhone || '';
+
+                document.getElementById('settingsKBZName').value = data.kbzName || '';
+
+                document.getElementById('settingsWavePhone').value = data.wavePhone || '';
+
+                document.getElementById('settingsWaveName').value = data.waveName || '';
+
+            });
+
+            db.ref('settings/adLink').once('value', (snapshot) => { document.getElementById('settingsAdLink').value = snapshot.val() || ''; });
+
+        }
+
+
+
+        async function savePaymentSettings() {
+
+            await db.ref('settings/payment').set({ kbzPhone: document.getElementById('settingsKBZPhone').value, kbzName: document.getElementById('settingsKBZName').value, wavePhone: document.getElementById('settingsWavePhone').value, waveName: document.getElementById('settingsWaveName').value });
+
+            showToast('Payment saved!');
+
+        }
+
+
+
+        async function saveAdSettings() { await db.ref('settings/adLink').set(document.getElementById('settingsAdLink').value); showToast('Ad saved!'); }
+
+
+
+        async function sendGlobalNotice() {
+
+            const message = document.getElementById('globalNoticeText').value.trim();
+
+            if (!message) { showToast('Enter message', 'error'); return; }
+
+            await db.ref('globalNotice').set({ message: message, timestamp: Date.now() });
+
+            document.getElementById('globalNoticeText').value = '';
+
+            showToast('Notice sent to all!');
+
+        }
+
+
+
+        window.onload = function() {
+
+            const urlParams = new URLSearchParams(window.location.search);
+
+            const inviteCode = urlParams.get('invite');
+
+            if (inviteCode) document.getElementById('invite').value = inviteCode;
+
+        };
+
+    </script>
+
+</body>
+
+</html>
